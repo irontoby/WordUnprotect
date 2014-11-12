@@ -1,0 +1,75 @@
+
+                   Word for Windows Password Cracker (R8)
+                      Copyright by Fauzan Mirza, 1995
+
+This program attempts to recover the password for Word for Windows encrypted
+documents.
+
+Usage:  WFWCD <DocumentPath>
+
+If the path to the protected document is not specified on the command line,
+the user will be prompted to enter it (also facilitating running from within
+Windows). Wildcards cannot be used in the document path.
+
+There is a short delay during loading and analysis of the document, after
+which a portion of the decrypted document and the password is displayed.
+
+                           Technical Explanation
+
+Word for Windows derives a 16 byte binary key from the password and cyclicly
+XORs this key with the plaintext. This is called a repeated key cipher and
+its weaknesses are well known.
+
+In versions 1 and 2, the key was stored along with the encrypted document
+(probably by accident). With a little intuition, it was trivial to retrieve
+the decrypted text or to remove the encryption from the document:
+
+   Locate 16 bytes of pure key in the document header.
+   Cyclicly XOR the key with the ciphertext.
+
+Marc Thibault used a similar routine in his public domain WORDUNP program.
+
+In version 6, the document file format was changed and the key was no longer
+stored in the file. This did not make it that much more difficult to solve
+though; someone with a little knowledge of cryptanalysis would be able to
+extract the plaintext from most encrypted documents:
+
+   Load ciphertext into a 16 column buffer.
+   For each key byte from 1 to 16,
+     Let key byte be the most frequent character in column XOR'd with 32.
+   Cyclicly XOR the key with the ciphertext.
+
+Although this may be able to solve most files, most of the time the user
+would need to correct guesses made by the routine. And if the document is
+fairly short, or doesn't contain enough spaces then it's guaranteed to fail.
+The new file format also made constructing a decrypted document quite
+difficult.
+
+WFWCD extends the above routine. It uses a much better algorithm to recover
+the plaintext, and then to recover the password. The decryption engine is
+based on the WP1 program, by Lyal Collins, but has been improved.
+
+It assumes that the document consists predominantly of lower case letters,
+and the letter frequencies are close to that of English. It may fail to solve
+documents in which these conditions are not satisfied. For example, if there
+is very little textual content in the file (less than 300 bytes) than it will
+fail because of the lack of data for analysis.
+
+                             Other Information
+
+WFWCD (Word For Windows Cracker Demo) was developed and tested using gcc
+under Linux, and was only recently ported to MSDOS. R8 is an indication of
+the revision number. I had plans for R9, but it would take too much time to
+complete and so I decided to release this preliminary version instead.
+
+If you'd like to contact me, my current email address is:
+
+                   Fauzan Mirza <fauzan@dcs.rhbnc.ac.uk>
+
+Thanks to the following people to whom this program is dedicated:
+Hamid Moosavi, Christopher Wilkinson, John Godley, and IRON MAIDEN.
+
+WFWCD IS FREEWARE AND YOU ARE ALLOWED TO USE AND DISTRIBUTE THE PROGRAM
+PROVIDED THAT IT IS NEITHER USED FOR AIDING DISHONEST OR CRIMINAL ACTIVITY,
+NOR USED FOR PROFIT.
+
