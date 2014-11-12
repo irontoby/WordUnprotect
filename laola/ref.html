@@ -1,0 +1,295 @@
+<html><head><title>LAOLA reference, $Date: 1997/07/01 00:06:43 $</title></head>
+<body bgcolor="#ffffff" link="#0000ff" alink="#ff0000" vlink="#0000bf">
+<!-- $Id: ref.html,v 0.5.1.6 1997/07/01 00:06:43 schwartz Rel $ -->
+
+<hr><p>
+
+<H1 align=left><font color="#7f007f">laola.pl</font></H1>
+
+<H2>Quick Reference</H2>
+
+Short reference on the functions of perl package "laola.pl", as of Jun/30/97.
+
+<dl>
+<dt>laola_<b>close_document</b><br>
+"<font color="#0000ff">ok</font>"
+   = laola_close_document
+   ()<br>
+<dd>Close the Laola style document.<br>
+<p>
+
+<dt>laola_<b>get_directory</b><br>
+<i><font color="#0000ff">%pps_names</font></i>
+   = laola_get_directory
+   (<i><font color="#009f00">$pps</font></i>)<br>
+<dd>Read the directory denoted by property handle $pps. Returns a hash 
+    array with the property names as keys and property handles as values. 
+    [$pps_names{$pps_name} == $pps]<br>
+    <em>Note:</em> To get the root directory, call 
+        <i>laola_get_directory</i>(0)
+<p>
+
+<dt>laola_<b>get_dirhandles</b><br>
+<i><font color="#0000ff">@pps</font></i>
+   = laola_get_dirhandles
+   (<i><font color="#009f00">$pps</font></i>)<br>
+<dd>Similar to laola_get_directory. Returns not the names, but only the 
+    property handles of the directory denoted by property handle $pps.<br>
+    <em>Note:</em> to get the root directory, call 
+        <i>laola_get_dirhandles</i>(0)<br>
+    <em>Note:</em> 
+        Normally you will use <i>laola_get_directory</i> instead.</br>
+<p>
+
+<dt>laola_<b>get_file</b><br>
+"<font color="#0000ff">ok</font>" || <i><font color="#0000ff">$error</font></i>
+   = laola_get_file
+   (<i><font color="#009f00">$pps</font></i>, <i><font color="#009f00">extern $buf</font></i> [,<i><font color="#009f00">$offset</font></i>, <i><font color="#009f00">$size</font></i>])<br>
+<dd>Read the file property $pps into buffer $buf. If there is an optional
+    $offset and $size, only this part of the file will be read.
+<p>
+
+<dt>laola_<b>get_filesize</b><br>
+<i><font color="#0000ff">$filesize</font></i> || <font color="#0000ff">0</font>
+   = laola_get_filesize
+   (<i><font color="#009f00">$pps</font></i>)<br>
+<dd>Returns the byte size of the file property $pps.
+<p>
+
+<dt>laola_<b>get_trash</b><br>
+"<font color="#0000ff">ok</font>" || <i><font color="#0000ff">$error</font></i>
+    = laola_get_trash
+    (<i><font color="#009f00">$type</font></i>, <i><font color="#009f00">extern $buf</font></i> [,<i><font color="#009f00">$offset</font></i>, <i><font color="#009f00">$size</font></i>])<br>
+<dd>Read the trash section $type into buffer $buf. If there is an optional
+    $offset and $size, only this part of the trash section will be read.
+    Trash types can be 0, 1, 2, 4, 8 or any sum of this, like (1+2+8). 0 
+    is default and yields (1+2+4+8).<br>
+    <em>Note:</em> A explanation of this types is still to be done.
+<p>
+
+<dt>laola_<b>get_trashsize</b><br>
+<i><font color="#0000ff">$sizeof_trash_section</font></i>
+   = laola_get_trashsize
+   (<i><font color="#009f00">$type</font></i>)<br>
+<dd>Returns the byte size of the trash section $type.<br>
+<p>
+
+<dt>laola_<b>is_directory</b><br>
+<font color="#0000ff">1</font> || <font color="#0000ff">0</font>
+   = laola_is_directory
+   (<i><font color="#009f00">$pps</font></i>)<br>
+<dd>Returns 1 if the property handle $pps is refering to a directory,
+    0 otherwise.
+<p>
+
+<dt>laola_<b>is_file</b><br>
+<font color="#0000ff">1</font> || <font color="#0000ff">0</font>
+   = laola_is_file
+   (<i><font color="#009f00">$pps</font></i>)<br>
+<dd>Returns 1 if the property handle $pps is refering to a file,
+    0 otherwise.
+<p>
+
+<dt>laola_<b>is_file_ppset</b><br>
+<font color="#0000ff"><i>$ppset_type</font></i> || <font color="#0000ff">0</font>
+   = laola_is_file_ppset
+   (<i><font color="#009f00">$pps</font></i>)<br>
+<dd>Returns the type of the property set, if the file property handle $pps
+   is refering to a property set, 0 otherwise.<br>
+   <em>Note:</em> $ppset_type can be either 1 or 5 at the moment.
+<p>
+
+<dt>laola_<b>is_root</b><br>
+<font color="#0000ff">1</font> || <font color="#0000ff">0</font>
+   = laola_is_root
+   (<i><font color="#009f00">$pps</font></i>)<br>
+<dd>Returns 1 if the property handle $pps is refering to the root,
+    0 otherwise.<br>
+    <em>Note:</em> At the moment only property handle 0 should be
+    the root.<br>
+    <em>Note:</em> Normally you will not have to use this function.
+<p>
+
+<dt>laola_<b>modify_file</b><br>
+"<font color="#0000ff">ok</font>" || <i><font color="#0000ff">$error</font></i>
+   = laola_modify_file
+   (<i><font color="#009f00">$pps</font></i>, <i><font color="#009f00">extern $buf</font></i>, <i><font color="#009f00">$offset</font></i>, <i><font color="#009f00">$size</font></i>)<br>
+<dd>Modifies the contents of the property file $pps. $size bytes of the file
+   $pps starting at offset $offset will be replaced by $size bytes of the buf 
+   $buf starting at offset 0.<br>
+   <em>Note:</em> This is still very restrictive, e.g. because the size
+   of a file cannot be changed. Also missing is a possibility to give an
+   offset to $buf.
+<p>
+
+<dt>laola_<b>modify_trash</b><br>
+"<font color="#0000ff">ok</font>" || <i><font color="#0000ff">$error</font></i>
+   = laola_modify_trash
+   (<i><font color="#009f00">$type</font></i>, <i><font color="#009f00">extern $buf</font></i>, <i><font color="#009f00">$offset</font></i>, <i><font color="#009f00">$size</font></i>)<br>
+<dd>Modifies the contents of the trash section $type. $size bytes of the trash
+   section $type starting at offset $offset will be replaced by $size bytes 
+   of the buf $buf starting at offset 0.<br>
+<p>
+
+<dt>laola_<b>open_document</b><br>
+"<font color="#0000ff">ok</font>" || <i><font color="#0000ff">$error</font></i>
+   = laola_open_document
+   (<i><font color="#009f00">$filename</font></i> [,<i><font color="#009f00">$openmode</font></i> [,<i><font color="#009f00">buf</font></i>] ])<br>
+<dd>Open the Laola style document with document path (name) $filename.
+    $openmode can be read, read/write or buffer. If you specify $buf, laola 
+    will read the document data from buffer instead from a real file. This 
+    buffer will not be modified. In other words, it is always read only.
+    <table border=1><tr><td colspan=3><b>Open modes</b>
+    <tr><td><b>Bit </b><td><b>0 Unset</b><td><b>1 Set</b>
+    <tr><td><b>0 <td>Read Only (default)<td>Read and Write
+    <tr><td><b>4 <td>File Mode (default)<td>Buffer Mode
+    </table>
+    <br><em>Note:</em> It is only possible to have one file opened!
+<p>
+
+<dt>laola_<b>pps_get_date</b><br>
+(<i><font color="#0000ff">$day</font></i>, <i><font color="#0000ff">$month</font></i>, <i><font color="#0000ff">$year</font></i>, <i><font color="#0000ff">$hour</font></i>, <i><font color="#0000ff">$min</font></i>, <i><font color="#0000ff">$sec</font></i>) || <font color="#0000ff">0</font>
+   = laola_pps_get_date
+   (<i><font color="#009f00">$pps</font></i>)<br>
+<dd>Returns the last modification date and time of the directory property 
+    handle $pps. The range of the result is:<br>
+    (1..31, 1..12, 1601..., 0..23, 0..59, 0.x .. 59.x)
+<p>
+
+<dt>laola_<b>pps_get_name</b><br>
+<i><font color="#0000ff">$name_of_pps</font></i>
+   = laola_pps_get_name
+   (<i><font color="#009f00">$pps</font></i>)<br>
+<dd>Returns the name of the property handle $pps.
+<p>
+
+<dt>laola_<b>ppset_get_dictionary</b><br>
+("<font color="#0000ff">ok</font>", <i><font color="#0000ff">%dictionary</font></i>) || <i><font color="#0000ff">$error</font></i>
+   = laola_ppset_get_dictionary
+   (<i><font color="#009f00">$pps</font></i>)<br>
+<dd>Returns a hash array with all possible ids of a property set denoted 
+    by property set handle $pps as keys and their property set id names as 
+    values. This is known to be the dictionary of a property set.<br>
+    <em>Note:</em> Normally you will use <i>ppset_get_idset</i> instead.<br>
+    <em>Note:</em> laola.pl offers default dictionaries for 
+       "\05SummaryInformation", "\05DocumentSummaryInformation" and for 
+       fake ppset "\01CompObj".<br>
+<p>
+
+<dt>laola_<b>ppset_get_idset</b><br>
+("<font color="#0000ff">ok</font>", <i><font color="#0000ff">%ppset_idset</font></i>) || <i><font color="#0000ff">$error</font></i>
+   = laola_ppset_get_idset
+   (<i><font color="#009f00">$pps</font></i>)<br>
+<dd>Returns a hash array with the available ids of a property set as keys 
+    and their property set id names according to the property sets 
+    dictionary as values. 
+    [$ppset_idset{$token} == $property_name{$token}]<br>
+    <em>E.g.,</em> if for property set "\05SummaryInformation" id 3 were
+    available, then $ppset_idset{3}=="subject" is true.<br>
+    <em>Note:</em> Some or all names can be empty, if they cannot be figured 
+    out. Nevertheless the ids are valid.
+<p>
+
+<dt>laola_<b>ppset_get_property</b><br>
+(<i><font color="#0000ff">$type</font></i>, <i><font color="#0000ff">@mixed</font></i>) || ("<font color="#0000ff">error</font>", <i><font color="#0000ff">$error</font></i>)
+   = laola_ppset_get_property
+    (<i><font color="#009f00">$pps</font></i>, <i><font color="#009f00">$id</font></i>)<br>
+<dd>Returns the property @mixed belonging to property identifier $id from 
+    property set denoted by $pps. @mixed is a one or more element array,
+    depending on $type. Mixed can be also a property vector (an array of
+    properties). @mixed is a vector, if ($type & 0x1000).
+    In that case:<br>
+    @mixed == ( ($n1, $type1, @mixed1), ($n2, $type2, @mixed2), ...). To yield 
+    the vector elements you will have to do something like:
+<pre><font size="+1">while (@mixed) {
+   ($type_n, @mixed_n) = splice(@mixed, 0, shift(@mixed));
+   &lt;do something with $type_n and @mixed_n&gt;
+}</font></pre>
+<p>
+
+</dl><p>
+
+<hr><p>
+
+<H3>Tables</H3>
+
+<H4><font color="#7f007f">Table 1: Property types</font></H4>
+<dl><dd>
+<table border=1>
+<tr><td><b>$type&nbsp;&nbsp;</b><td><b>type</b><td><b>status</b>
+    <td><b>byte size (file)</b><br>
+<tr><td><b>0x00  </b><td>empty            <td>ok
+    <td>0<br>
+<tr><td><b>0x01  </b><td>null             <td>ok
+    <td>0<br>
+<tr><td><b>0x02  </b><td>i2 (word)        <td>ok
+    <td>2<br>
+<tr><td><b>0x03  </b><td>i4 (long)        <td>ok
+    <td>4<br>
+<tr><td><b>0x04  </b><td>r4 (real)        <td>ok
+    <td>4<br>
+<tr><td><b>0x05  </b><td>r8 (double)      <td>ok
+    <td>8<br>
+<tr><td><b>0x06  </b><td>cy               <td>not available
+    <td><br>
+<tr><td><b>0x07  </b><td>date             <td>not available
+    <td><br>
+<tr><td><b>0x08  </b><td>bstr             <td>not available
+    <td><br>
+<tr><td><b>0x0a  </b><td>error            <td>ok
+    <td>4<br>
+<tr><td><b>0x0b  </b><td>bool             <td>ok
+    <td>4<br>
+<tr><td><b>0x0c  </b><td>variant          <td>ok
+    <td>4+sizeof($type)<br>
+<tr><td><b>0x11  </b><td>ui1 (uchar)      <td>ok
+    <td>1<br>
+<tr><td><b>0x12  </b><td>ui2 (uword)      <td>ok
+    <td>2<br>
+<tr><td><b>0x13  </b><td>ui4 (ulong)      <td>ok
+    <td>4<br>
+<tr><td><b>0x14  </b><td>i8               <td>not available
+    <td><br>
+<tr><td><b>0x15  </b><td>ui8              <td>not available
+    <td><br>
+<tr><td><b>0x1e  </b><td>lpstr (string)   <td>ok
+    <td>5+length($str)<br>
+<tr><td><b>0x1f  </b><td>lpwstr           <td>not available
+    <td><br>
+<tr><td><b>0x40  </b><td>filetime         <td>ok
+    <td>8<br>
+<tr><td><b>0x41  </b><td>blob             <td>not available
+    <td><br>
+<tr><td><b>0x42  </b><td>stream           <td>not available
+    <td><br>
+<tr><td><b>0x43  </b><td>storage          <td>not available
+    <td><br>
+<tr><td><b>0x44  </b><td>streamed_object  <td>not available
+    <td><br>
+<tr><td><b>0x45  </b><td>stored_object    <td>not available
+    <td><br>
+<tr><td><b>0x46  </b><td>blobobject       <td>not available
+    <td><br>
+<tr><td><b>0x48  </b><td>clsid            <td>not available
+    <td><br>
+<tr><td><b>0x49  </b><td>cf               <td>not available
+    <td><br>
+<tr><td><b>0x1000</b><td>vector           <td>ok
+    <td><br>
+</table></dl>
+&nbsp;<p>
+
+<H4><font color="#7f007f">Table 2: Trash types</font></H4>
+<dl><dd>
+<table border=1>
+<tr><td><b>$type&nbsp;&nbsp;</b><td><b>type</b>
+<tr><td><b>1</b>  <td>Big blocks<br>
+<tr><td><b>2</b>  <td>Small blocks<br>
+<tr><td><b>4</b>  <td>File end space<br>
+<tr><td><b>8</b>  <td>System space<br>
+</table>
+</dl>
+
+<hr><p>
+Back to <a href=index.html>Laola</a> Homepage.<p>
+</body></html>

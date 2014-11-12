@@ -1,0 +1,56 @@
+#!/usr/bin/perl
+# $Id: pwhash,v 0.1.1.5 1997/07/01 00:06:46 schwartz Rel $
+#
+# pwhash, Apr/23/1997
+#
+# This program is distributed as part of Elser. Elser can be found at: 
+#
+#    http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/elser.html
+#
+# Copyright (C) 1997 Martin Schwartz 
+#
+
+if (!@ARGV) {
+   print 
+     "\n"
+     ."pwhash  Calculates a 16 bit hash value from a string.\n"
+     ."        Word 6.0 uses this to recognize if a password is correct.\n"
+     ."usage:  pwhash {password}\n"
+     ."\n";
+   exit 0;
+}
+
+foreach $name (@ARGV) {
+   printf ("%04x == hash($name)\n", &get_hash($name));
+}
+
+sub get_hash {
+#
+# Hash is initialized with 0xce4b. 
+# For every character c of the password, starting with index i=1:
+#    a = (rotate left) (character c[i]) (i+1 bits) (using a 15 (!) bit integer)
+#    xor hash with a, i, i+1
+#  
+   local($name) = shift;
+   local($l) = length($name);
+   local($i);
+   local($h) = unpack("v", "hc") / 2 ^ 0xffff; # a funnier 0xce4b
+   for ($i=0; $i<$l; $i++) {
+      $h ^= ( &rol(&byte($i, $name),$i+1,15) ^ ($i+1) ^ $i);
+   }
+   $h;
+}
+
+sub rol {
+#
+# int = rol(n, numbits, bitlen)
+# rotate left the (bitlen bits sized) (integer n) for (numbits bits) 
+#
+   local($n, $num, $bitlen) = @_;
+   return $n if !$num;
+   $num %= $bitlen;
+   ($n * 2**$num) & (2**$bitlen-1) | ( ($n * 2**($num-$bitlen)) );
+}
+
+sub byte { unpack("C", substr($_[1], $_[0], 1)); }
+

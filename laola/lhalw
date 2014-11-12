@@ -1,0 +1,346 @@
+#!/usr/bin/perl
+#$Id: lhalw,v 1.1.1.6 1997/07/01 00:06:44 schwartz Rel $
+#
+# lhalw, Laola Have A Look at Word 6+ Files
+#
+# This program saves the text part of a Word 6/7 style or the first text
+# chunk of a word 8 file. The result for Word 8 files saved with "fastsave" 
+# will *not* always be the real contents of the document.
+#
+# -  The program requires two non standard perl 4 packages:
+#    1. laola.pl 
+#       http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/laola
+#    2. textutil.pl 
+#       http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/elser/textutil
+#
+# -  The purpose of lhalw is mainly to demonstrate the laola library, not so
+#    much to convert a word file. Anyway at least it handles the text portions
+#    of Word 6 / 7 files quite correctly. If you need a real convertress, 
+#    look for my program "Elser". You might like to use lhalw anyway, as 
+#    "real" of course is a euphemism for "big and slow" ;)
+#
+# -  lhalw informs you a little bit about the trouble while converting.
+#
+# See also usage() of this file. General information at:
+#    http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/index.html
+#
+# Copyright (C) 1996, 1997 Martin Schwartz 
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, you should find it at:
+#
+#    http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/COPYING
+#
+# You can contact me via schwartz@cs.tu-berlin.de
+#
+
+# Please change / uncomment (remove '#') setting according to your system.
+# $sys_os = "unix"; 
+# $sys_os = "dos";  
+$sys_os = "vms";
+$laola_vms = "PERL_ROOT:[LAOLA]laola.pl";
+$textutil_vms = "PERL_ROOT:[LAOLA.ELSER]textutil.pl";
+
+main: {
+   &mystd('c:CfFNS');
+   if ($sys_os eq "vms") {
+   require "$textutil_vms" if $opt_c;
+   } else {
+   require "elser/textutil.pl" if $opt_c;
+   }
+   $opt_f ? &handle_stream : &handle_files;
+   exit 0;
+}
+
+sub handle_stream {
+   return &msg2 ("Nothing to do!") if -t STDIN;
+   undef $/;
+   &msg2 (&laola_open_document("input", 2**4, <>)) && &main_work();
+}
+
+sub handle_files {
+   &usage if !@ARGV;
+   foreach $infile (@ARGV) {
+      &msg ("Processing \"$infile\":");
+      next if ! (&msg2 (&laola_open_document($infile)) && &main_work() );
+      &msg3("done.");
+   }
+}
+
+sub main_work {
+   $warning=undef; $textout=undef; $footout=undef; 
+   $word_textl=0; $word_footl=0; $word_destl=0;
+   local($wpps);
+   is_opened: {
+      last if !&msg2 (&get_worddocument_pps($wpps));
+      last if !&msg2 (&get_document_text($wpps));
+      &convert_text();
+      last if !&msg2 (&save_document($infile));
+      return &laola_close_document() && 1;
+   }
+   return &laola_close_document() && 0;
+}
+
+sub usage {
+   print 
+      "usage: lhalw [-o <file>] {document}\n"
+      ."Convert a Word 6+ Document simply to text.\n"
+      ."-c n  column. Output will have a width of maximal n characters.\n"
+      ."-C    Control chars. Keep Word's control characters.\n"
+      ."-f    filter. Reads a document from stdin, writes it to stdout.\n"
+      ."-F    Filter out. Writes document(s) to stdout.\n"
+      ."-N    No warnings.\n"
+      ."-o    output. Redirect stdout to <file>.\n"
+      ."-S    Stupid. Do not evaluate fastsave information.\n"
+   ;
+   exit 0;
+}
+
+sub get_worddocument_pps {
+#
+# Assume Word Document, if there is a stream "WordDocument".
+#
+   local(%dir)=&laola_get_directory(0);
+   if (defined $dir{"WordDocument"}) {
+      $_[0] = $dir{"WordDocument"};
+      return "ok";
+   } else {
+      return ("Not a Word document!\n")
+   }
+}
+
+sub get_document_text {
+#
+# Read text section out of $inbuf and store this in global $textout
+#
+   local($pps)=shift;
+
+   local($begin, $end, $len);
+   local($header)="";
+   local($status);
+   local($tmp);
+   local($word_status);
+   local($word_fast, $word_protected); local($word_version_ok)=0;
+   local($l, $lstr, $qstr);
+   
+   $status = &laola_get_file($pps, $header, 0, 0x300);
+   return $status if $status ne "ok";
+
+   # Document status
+   $word_status  = &get_word(0x0a, $header);
+   $word_fast    = $word_status & 2**2;
+   $word_crypted = $word_status & 2**8;
+   $tmp = &get_byte(5, $header);
+   $word_version_ok=1 if ($tmp==0xc0) || ($tmp==0xe0);
+
+   return "Document is password protected!" if $word_crypted;
+
+   $begin=&get_long(0x18, $header);  # start of 1st text chunk
+   $end=&get_long(0x1c, $header);    # end of 1st text chunk
+   $len=$end-$begin;
+
+   if ($word_version_ok) {
+      $word_textl = &get_long(0x34, $header);
+      $word_footl = &get_long(0x38, $header);
+      $word_destl = &get_long(0x3c, $header);
+      if ($word_fast && !$opt_S) {
+         $status = &get_fastsaved_text();
+      } else {
+         $status = &get_text();
+      }
+   } else {
+      $status = &get_text();
+      $word_textl = &get_long(0x4c, $header); 
+   }
+   return $status if $status ne "ok";
+
+   # Give a little warning, even if it's not very sensible.
+   $l = $word_textl+$word_footl+$word_destl-length($textout);
+   substr($textout, $word_textl+$word_footl)="";
+   if (!$opt_N && $l) {
+      $lstr = &abs($l)." byte" . (&abs($l)>1 && "s" || "");
+      $qstr = ($l>0) ? "missing" : "to much";
+      $warning = "!! Attention: $lstr of text $qstr !!\n";
+      &msg1("$lstr $qstr");
+   }
+   "ok";
+}
+
+sub get_text {
+   &laola_get_file($pps, $textout, $begin, $len);
+}
+sub get_fastsaved_text {
+#
+# This code handles as little as possible Word's fastsave format. 
+#
+   local($buf);
+   local($tmp)="";
+   local($status);
+   local(@fchar_to)=();
+   local(@fchar_o)=();
+   local($t, $o, $l);
+   local($i, $max);
+
+   $status = &laola_get_file($pps, $tmp);
+   return $status if $status ne "ok";
+   $buf=substr($tmp, &get_long(0x160, $header), &get_long(0x164, $header));
+
+   $o=0; 
+   while ($o<=length($buf)) {
+      $t=&get_byte($o, $buf);
+      $l=&get_word($o+1, $buf); 
+      $o+=3;
+      next if !$l;
+      if (!$t) {
+         $o++; next;
+      } elsif ($t==1) {
+      } elsif ($t==2) {
+         $max = ($l-4)/12; $o+=2;
+         @fchar_to = unpack("V".($max+1), substr($buf, $o, ($max+1)*4));
+         foreach $i (0..$max) {
+            push(@fchar_o, &get_long($o+4+$max*4 + $i*8 +2, $buf));
+         }
+         last;
+      } else {
+         return "I don't understand this fastsave format!";
+      }
+      $o+=$l;
+   }
+   foreach $i (0..$#fchar_o) {
+      $textout .= substr($tmp, $fchar_o[$i], $fchar_to[$i+1]-$fchar_to[$i]);
+   }
+   return "ok";
+}
+
+sub convert_text {
+   $footout = substr($textout, $word_textl, $word_footl);
+   substr($textout, $word_textl)="";
+   local($num);
+
+   if (!$opt_C) {
+      &silly_convert();
+      &strip_control($textout);
+      &strip_control($footout);
+   }
+
+   if ($opt_c) {
+      &strip_control($textout);
+      &strip_control($footout);
+      &set_maxcolumn($opt_c);
+      &set_breaking_mode(1); &set_hypen_char("-");
+      &set_line_delimitra($opt_C? "\x0d" : "\n");
+      &set_tab_delimitra("\t");
+
+      # Line breaking
+      &format_lines($textout);
+      &format_lines($footout);
+   }
+}
+
+sub silly_convert {
+   # footnotes
+   $num=1; while ($textout =~ s/\x02/[$num]/) { $num++ }
+   $num=1; while ($footout =~ s/\x02/[$num]/) { $num++ }
+   # fields
+   $textout =~ s/\x13[^\x14]*\x14([^\x15]*)\x15/$1/g;
+   $textout =~ s/\x13[^\x15]*\x15//g;
+   $footout =~ s/\x13[^\x14]*\x14([^\x15]*)\x15/$1/g;
+   $footout =~ s/\x13[^\x15]*\x15//g;
+}
+
+sub strip_control {
+   # Here some characters could be converted like:
+   $_[0] =~ s/[\x07-\x09]/\t/g;		
+   $_[0] =~ s/[\xa0]/ /g;		
+   $_[0] =~ s/[\x0b\x0c\x0e]/\x0d/g;		
+   $_[0] =~ tr/\x1e\x84\x91\x92\x93\x94/-"`'""/;
+
+   # Away with Words control characters 
+   $_[0] =~ s/[\x00-\x06\x0f-\x1f\x80-\x9f]//g;
+
+   $_[0] =~ s/\x0d/\n/g;
+}
+
+sub save_document {
+   local($outname);
+   if ($opt_f || $opt_F) {
+      print $warning if ($warning && !$opt_N);
+      print $textout.$footout;
+   } else {
+      $outname = &basename(shift) . '.txt';
+      return "Cannot open $outname!" if !(
+         open(OUT, ">".$outname) && binmode(OUT)
+      );
+      print OUT $warning if ($warning && !$opt_N);
+      print OUT $textout.$footout;
+      close OUT;
+   }
+   "ok";
+}
+
+##
+## Little helps
+##
+
+sub get_byte { unpack("C", substr($_[1], $_[0], 2)) }
+sub get_word { unpack("v", substr($_[1], $_[0], 2)) }
+sub get_long { unpack("V", substr($_[1], $_[0], 4)) }
+sub abs { ($_[0] < 0) ? -$_[0] : $_[0] }
+
+sub msg  { !$opt_F && @_ && print (shift) || 1 }
+sub msg1 { &msg( " ".(shift)."," ) }
+sub msg2 {
+   local($status) = shift;
+   if ($status eq "ok") {
+      return &msg(shift);
+   } else {
+      &msg3("error!");
+      print "Error: $status\n" if $status;
+      return 0;
+   }
+}
+sub msg3 {
+   local($msg) = shift;
+   $msg .= "\n" if ! ($msg=~/\n$/);
+   &msg ( " $msg" );
+}
+
+sub basename {
+   (substr($_[0], rindex($_[0],'/')+1) =~ /(^[^.]*)/) && $1;
+}
+
+sub mystd {
+   local($opts)=shift;
+   $|=1; $[=0;
+   if (!$sys_os) {
+      # If sys_os is not set explicitly: 
+      #    assume a dos system, if some standard /etc/file not present.
+      $sys_os = "dos";
+      $sys_os = "unix" if 
+         (-e '/etc/group') || (-e '/etc/hosts.equiv') || (-e '/etc/passwd');
+   }
+   if ($sys_os eq "unix") {
+      splice(@INC, 0, 0, 
+             ($ENV{'HOME'}||$ENV{'LOGDIR'}||(getpwuid($<))[7]).'/lib/perl/');
+   }
+   require "getopts.pl";
+   &Getopts ($opts.'o:'); 
+   if ($opt_o) {
+      if (!open (STDOUT, '>'.$opt_o)) {
+         print "Error! Cannot redirect output to \"$opt_o\"!\n\n";
+         exit 1;
+      }
+   }
+   require "$laola_vms";
+}
+

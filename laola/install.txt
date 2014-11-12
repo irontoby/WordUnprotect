@@ -1,0 +1,46 @@
+##
+## Tips to install LAOLA and Elser
+##
+
+Install Automatically
+
+If you like to install Laola automatically, use the program "install".
+Simply start it with "perl install". Install will ask you, if all 
+parameters are correct, before it does something. Install has some 
+options, "perl install -h" showed them.
+
+
+Install Manually
+
+If you like to install Laola by hand, you have to copy some 
+files including their directories to your favorite perl library 
+directory. They are denoted by the hash array %lib_files in file 
+"install".
+
+
+Notes for Unix (Admin)
+
+If you administrate a Unix system and want to install Laola for all
+userEsses, start the install program with the command line option "-g". If
+you have different perl versions, like a 4er and a 5er, prefer version 4.
+Note that the executables will be called with the last perl version, that 
+you used to install.
+
+
+Notes for Unix (UserEss)
+
+If you use a Unix system and you want to install Laola just privately,
+assure to have your $ExecutePath (s.b.) before the /usr/bin path in 
+your PATH environment variable. Otherwise it could happen, that you run 
+the global program executables with your local Laola library files, and
+this could be messy.
+
+
+What to do on Errors
+
+If this install program reports errors, try to apply manual changes
+to file "install".
+
+
+Yours, Martin
+

@@ -1,0 +1,525 @@
+#!/usr/bin/perl
+#$Id: elser,v 0.1.1.6 1997/07/01 00:06:45 schwartz Rel $
+#
+# Elser, handle Word 6 style documents.
+#
+# Elser is written in perl4. Perl 4 is an outdated and in many ways 
+# restricted release of perl, but it is freely available for every 
+# operating system, especially it runs on MS-DOS. Anyway, further 
+# releases will need perl 5.
+#
+# Elser requires some non standard perl libraries, that should have been
+# shipped along with this file. In case of any trouble, you might have
+# your first glance at:
+#
+#       http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/elser/index.html 
+# or
+#       http://user.cs.tu-berlin.de/~schwartz/pmh/elser/index.html
+#
+# Copyright (C) 1997 Martin Schwartz 
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, you should find it at:
+#
+#    http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/COPYING
+#
+# You can contact me via schwartz@cs.tu-berlin.de
+#
+
+# On errors, please uncomment (remove '#') setting according to your system:
+  #$sys_os = "unix"; 
+  #$sys_os = "dos";  
+$sys_os       = "vms";
+$laola_vms    = "PERL_ROOT:[LAOLA]laola.pl";
+$decrypt_vms  = "PERL_ROOT:[LAOLA.ELSER.WORD6]decrypt.pl";
+$struct_vms   = "PERL_ROOT:[LAOLA.ELSER.WORD6]struct.pl";
+$macro_vms    = "PERL_ROOT:[LAOLA.ELSER]macro.pl";
+$macrolib_vms = "PERL_ROOT:[LAOLA.ELSER.WORD6]macrolib.pl";
+$elserdb_vms  = "PERL_ROOT:[LAOLA.ELSER]elserdb.pl";
+$mapmem_vms   = "PERL_ROOT:[LAOLA.ELSER]mapmem.pl";
+# End of userEss definable settings.
+
+sub init_var {
+   $inbuf=""; $password=""; $header="";
+   $word_version=undef; $word_status=undef; $word_virus=undef; 
+   $word_crypted=undef; $word_fast=undef; $word_template=undef;
+   %laola_dir=(); $suminfo_h=undef; $wh=undef;
+}
+
+main: {
+   $analyzedir = "analyze";
+   $beauty = 0;
+   &mystd('DEfimM:PRY:z:Z:');
+
+   #$opt_H = 1;
+
+   local($mapmem) = ($opt_z =~ /M/);
+   local($macro_connex) = 
+      $opt_i || $opt_D || $opt_E || $opt_m || $opt_M || $opt_Y || $opt_z
+   ;
+   local($text_connex) =
+      (0&&$opt_H) || $opt_z || $opt_Z
+   ;
+   local($more_than_info) = 
+      $opt_D || $opt_E || (0&&$opt_H) || $opt_M || $opt_R || $opt_Y || $opt_Z
+   ;
+   local($do_something) = 
+      $macro_connex || $more_than_info;
+   ;
+
+   if ($opt_h) {
+      &usage();
+   } elsif ($opt_z =~ /h/) {
+      &usageI();
+   } elsif (!$do_something) {
+      &nowork();
+   } elsif (!$opt_f && !@ARGV) {
+      &nowork();
+   } elsif ($opt_f && -t STDIN) {
+      # nobody can write a word doc by hand, can she?
+      &nowork();
+   } elsif ($opt_f && $opt_E) {
+      &msg2 ("Cannot unstealth macros (-r), input is a stream (-f)!");
+      exit 0;
+   } elsif ($opt_f && $opt_R) {
+      &msg2 ("Cannot remove password (-R), input is a stream (-f)!");
+      exit 0;
+   }
+
+   if ($sys_os eq "vms") {
+       require "$laola_vms";
+       require "$decrypt_vms"  unless $opt_P;
+
+   #require "elser/word6/parse.pl"   if $text_connex;
+       require "$struct_vms"   if $text_connex;
+
+       require "$macro_vms"          if $macro_connex;
+       require "$macrolib_vms" if $macro_connex;
+
+       require "$elserdb_vms"        if $opt_z||$opt_Z;
+       require "$mapmem_vms"         if $mapmem;
+   } else {
+       require "laola.pl";
+       require "elser/word6/decrypt.pl"  unless $opt_P;
+
+   #require "elser/word6/parse.pl"   if $text_connex;
+       require "elser/word6/struct.pl"   if $text_connex;
+
+       require "elser/macro.pl"          if $macro_connex;
+       require "elser/word6/macrolib.pl" if $macro_connex;
+
+       require "elser/elserdb.pl"        if $opt_z||$opt_Z;
+       require "elser/mapmem.pl"         if $mapmem;
+   }
+
+   local($status);
+
+   if ($opt_f) {
+      undef $/;
+      if (&msg2 (&laola_open_document("input", 2**4, <>)) ) {
+         &main_work("stream input");
+         &laola_close_document();
+      }
+   } else {
+      local($openstatus) = ($opt_D||$opt_E||$opt_R||$opt_Y) && 1;
+      foreach $infile (@ARGV) {
+         if (&msg2 (&laola_open_document($infile, $openstatus)) ) {
+            &main_work($infile);
+            &laola_close_document();
+         }
+      }
+   }
+   if ($opt_z =~ /Z/) {
+      &report_statistic(); &msg3("Done.\n");
+   }
+   exit 0;
+}
+
+sub main_work {
+   local($infile)=shift;
+   local($outbuf)="";
+   &msgnl(); $continue=1;
+
+   &msg("Processing \"$infile\":");
+   &init_var();
+
+   %laola_dir = &laola_get_directory(0);
+   return if !&msg2 (&get_worddocument_pps($wh, $suminfo_h));
+   return if !&msg2 (&laola_get_file($wh, $inbuf));
+
+   info_and_internal: {
+      &get_status();
+      return if !&check_protection;
+      $header = substr($inbuf, 0, 0x300);
+      return &report_status_word8() if $word_version>7;
+      &msg2 (&save_chunks()) if $opt_Z;
+   }
+
+   &structure_init() if $text_connex;
+   &mark_newlist() if $mapmem;
+
+   macro_related: {
+      last if !$macro_connex;
+      last if !&msg2 (&macro_bufopen($inbuf));
+      if ($opt_i) {
+         $word_virus = &macro_guess_virus();
+         &report_status();
+      }
+      &internal_info() if $opt_z;
+      &list_macros_and_menus() if $opt_m;
+      &get_macro_code() if $opt_M;
+      &msg2 (&disable_automacros()) if $opt_D;
+      &unstealth_macros() if $opt_E;
+      &yank_macro_code() if $opt_Y;
+   }
+
+   #&html_work() if $opt_H;
+
+   &macro_close() if $macro_connex;
+   $more_than_info ? &msg3("done.") : &msg3("info done.");
+}
+
+#
+# ----------------------------- Usage ----------------------------------
+#
+
+sub nowork {
+   if (!$opt_F) {
+      &msg3 ("nothing to do. Try \"Elser -h\" for help.");
+   } else {
+      &msg2 ("Nothing to do. Try \"Elser -h\" for help.");
+   }
+   exit 0;
+}
+
+sub usage {
+   print "\n"
+      ."Elser  Handle Word 6 style documents.\n"
+      ."       Version $REV from $DATE, (C) 1997 Martin Schwartz\n"
+      ."usage: Elser [-i] | [-DE] | [-Y #+] {document}\n"
+      ."       Elser [-m] | [-M <name>] | [-M #[n1[,n2...]]] {document}\n\n"
+      ."-D  Disable auto execute macros by renaming them.\n"
+      ."-E  Editable. Makes ExecuteOnly macros editable.\n"
+      ."-f  filter. Reads a document from stdin, writes it to stdout.\n"
+      #."-F  Filter out. Writes converted document(s) to stdout.\n"
+      ."-h  help. Shows this help.\n"
+      #."-H  HTML. Converts documents to HTML 3.2 format.\n"
+      ."-i  info. Info about: word6/7/8, password, macros, fastsaved, "
+            ."template.\n"
+      ."-m  macro names. Prints list of available macros.\n"
+      ."-M  Macro <name>|#<num>{,<num>}|#+. Prints macro codes to stdout.\n"
+      ."-o  output <file>. Redirects stdout to <file>.\n"
+      ."-P  Private. Prevents from decrypting documents and macros.\n"
+      ."-R  Remove password from docs. Dangerous! Might corrupt docs!\n"
+      ."-Y  Yank macro <name>|#<num>{,<num>}|#+. Removes code of macro(s)\n"
+      ."-z  (Internal. I use this to debug. \"-z h\" would give a summary.)\n"
+      ."-Z  (Internal. Saves word chunks into directory \"$analyzedir\".)\n"
+      ."\n";
+   ;
+   exit 0;
+}
+
+sub usageI {
+   print "\n"
+      ."Elser -I <ID> {document}\n"
+      ."   a  anchors\n"
+      ."   c  character Formats\n"
+      ."   C  Character Format Pages\n"
+      ."   d  Destination Field\n"
+      ."   D  Destination Info\n"
+      ."   f  footnotes\n"
+      ."   F  Fonts\n"
+      ."   h  this help\n"
+      ."   i  insert field\n"
+      ."   k  (internal all format codes)\n"
+      ."   l  (internal format list)\n"
+      ."   L  (internal format list comprehensive)\n"
+      ."   m  macro\n"
+      ."   M  Memory usage\n"
+      ."   p  paragraph formats and special paragraph entry\n"
+      ."   P  Paragraph Format Pages\n"
+      ."   q  Fastsave\n"
+      ."   s  sections\n"
+      ."   S  Stylesheet\n"
+      ."   T  Text. Saves raw plain text of document.\n"
+      ."   Z  Ztatistic. Shows a header statistic of several documents.\n"
+      ."\n"
+   ; 
+   exit 0;
+}
+
+#
+# ------------------------- Main Utilities -----------------------------
+#
+
+sub get_worddocument_pps {
+#
+# Assume Word Document, if there is a stream "WordDocument".
+#
+   if (defined $laola_dir{"WordDocument"}) {
+      $_[0] = $laola_dir{"WordDocument"};
+      $_[1] = $laola_dir{"\05SummaryInformation"};
+      return "ok";
+   } else {
+      return ("Not a Word 6 document!\n")
+   }
+}
+
+sub get_status {
+   # status
+   $word_status   = &get_word(0x0a, $inbuf);
+   $word_crypted  = $word_status & 2**8;
+   $word_fast     = $word_status & 2**2;
+   $word_template = $word_status & 2**0;
+
+   # version
+   local($v) = &get_byte(5, $inbuf);
+   if    ($v==0xc0) { $word_version=6; } 
+   elsif ($v==0xe0) { $word_version=7; } 
+   elsif ($v==0x00) { $word_version=8; } 
+   else             { $word_version=0; }
+
+   &get_statistic() if ($opt_z =~ /Z/);
+}
+
+
+sub check_protection {
+   local($status)="";
+   if ($word_crypted) {
+      if ($opt_P) {
+         &msg2("\"$infile\" is password protected");
+         return 0;
+      }
+      &msg1("decrypting");
+      ($status, $password) = &word_decrypt_document(
+         $inbuf, $suminfo_h, $word_version, $word_status
+      );
+      return 0 if ! &msg2($status);
+
+      if ($opt_R) {
+         &msg1("removing PW");
+         &msg2(&laola_modify_file($wh, $inbuf, 0, length($inbuf)));
+      }
+   }
+   return 1;
+}
+
+sub report_status_word8 {
+   if ($opt_i) {
+      &report_status(); 
+      &msg3("info done."); return 1;
+   } else {
+      &msg2("Elser can handle Word 6 and Word 7 files, only!");
+      &msg3("done."); return 1;
+   }
+}
+
+sub report_status {
+   if ($word_crypted) {
+      &msg1("PW \"$password\"") if !$opt_P;
+   }
+
+   # version
+   if ($word_version) {
+      &msg1("word$word_version");
+   } else {
+      &msg1("version?");
+   }
+
+   # virus?
+   if ($word_version>7) {
+      # nothing;
+   } elsif ($word_virus > 1) {
+      &msg1("virus!?");
+   } elsif ($word_virus == 1) {
+      &msg1 ("virus?");
+   } elsif ($word_virus == 0) {
+      &msg1("no virus?");
+   } else {
+      &msg1("no macros");
+   }
+
+   # status
+   &msg1("fastsaved!") if $word_fast;
+   &msg1("template") if $word_template;
+
+   1;
+}
+
+#
+# --------------------------- Output ------------------------------------
+#
+
+sub save_buf {
+#
+# "ok"|$error = save_buf(path, buf)
+#
+   if (! (open(OUT, ">".$_[0]) && binmode(OUT)) ) {
+      return "Cannot open $_[0]";
+   }
+   if (! print OUT $_[1]) {
+      close OUT;
+      return "Failed to write to $_[0]";
+   }
+   close OUT;
+   "ok";
+}
+
+#
+# ------------------------------ System -------------------------------------
+#
+
+# thing = get_thing(offset, extern buf)
+sub get_byte { unpack("C", substr($_[1], $_[0], 1)) }
+sub get_word { unpack("v", substr($_[1], $_[0], 2)) }
+sub get_long { unpack("V", substr($_[1], $_[0], 4)) }
+
+# thing = put_thing(thing, offset, extern buf)
+sub put_byte { substr($_[2], $_[1], 1) = pack("C", $_[0]) }
+
+# get_nthing ($n, $offset, extern $buf);
+sub get_nbyte { unpack("C"x$_[0], substr($_[2], $_[1], 1*$_[0])) }
+sub get_nword { unpack("v"x$_[0], substr($_[2], $_[1], 2*$_[0])) }
+sub get_nlong { unpack("V"x$_[0], substr($_[2], $_[1], 4*$_[0])) }
+
+sub get_lbstr { substr($_[1], $_[0]+1, &get_byte) }
+sub get_lwstr { substr($_[1], $_[0]+2, &get_word) }
+
+sub get_chunk {
+#
+# $buf = get_chunk($header_pair_offset), globals: $header, $inbuf
+#
+   local($o, $l) = &get_nlong(2, shift, $header);
+   return "" if !($o && $l);
+   substr($inbuf, $o, $l);
+}
+
+#
+# --------------------------  Utils  -----------------------------
+#
+
+sub upstr {
+   local($s)=shift;
+   $s =~ tr/a-zäöü/A-ZÄÖÜ/; 
+   $s;
+}
+
+sub cmp_list {
+   return if !$#_ % 2;
+   local($i); local($l) = ($#_+1) / 2;
+   for ($i=0; $i<$l; $i++) {
+      return 0 if $_[$i] ne $_[$l+$i];
+   }
+   return 1;
+}
+
+sub hex2dez {
+   local($key)=shift;
+   local($val)=0;
+   local($hex)=0;
+   local($l) = length($key);
+   local($i);
+   for ($i=0; $i<$l; $i++) {
+      $hex*=0x10;
+      $val = index("0123456789abcdef", substr($key, $i, 1));
+      $val = index("0123456789ABCDEF", substr($key, $i, 1)) if $val<0;
+      $hex+=$val;
+   }
+   $hex;
+}
+
+sub msg {
+   return 1 if $opt_F;
+   local($msg)=shift;
+   if ($continue) {
+      if ($beauty) {
+         $msgcol += length($msg);
+         if ($msgcol>78) {
+            print "\n" . (" "x11); $msgcol=0; 
+         } 
+      }
+      print "$msg" if $msg;
+   } else {
+      $msg =~ s/^[\t ]*//;
+      substr($msg, 0, 1) =~ tr/a-zäöü/A-ZÄÖÜ/;
+      print "$msg\n" if $msg;
+   }
+   1;
+}
+
+sub msg1 {
+   &msg( " ".(shift)."," );
+}
+
+sub msg2 {
+   local($status) = shift;
+   if ($status eq "ok") {
+      return &msg(shift);
+   } else {
+      &msg3("error!") if $continue;
+      print "Error: $status\n" if $status;
+      return 0;
+   }
+}
+
+sub msg3 {
+   local($msg) = shift;
+   $msg .= "\n" if ! ($msg=~/\n$/);
+   &msg ( " $msg" );
+   &msgnl();
+}
+
+sub msgnl {
+   $continue=0; $msgcol=0;
+}
+
+sub basename {
+# $basename = basename($filepath)
+   (substr($_[0], rindex($_[0],'/')+1) =~ /(^[^.]*)/) && $1;
+}
+sub basepath {
+# $basepath = basepath($filepath)
+   local($p)=index($_[0],'.',rindex($_[0],'/'));
+   $p=length($_[0]) if $p<0;
+   substr($_[0], 0, $p);
+}
+
+sub mystd {
+   local($opts)=shift;
+   $|=1; $[=0;
+   $REV = ('$Revision: 0.1.1.6 $' =~ /: ([^ ]*)/) && $1;
+   '$Date: 1997/07/01 00:06:45 $' =~ / ..(..)\/(..)\/(..)/;
+   $DATE = "$2/$3/$1";
+   if (!$sys_os) {
+      # If sys_os is not set explicitly: 
+      #    assume a dos system, if some standard /etc/file not present.
+      $sys_os = "dos";
+      $sys_os = "unix" if 
+         (-e '/etc/group') || (-e '/etc/hosts.equiv') || (-e '/etc/passwd');
+   }
+   if ($sys_os eq "unix") {
+      splice(@INC, 0, 0, 
+             ($ENV{'HOME'}||$ENV{'LOGDIR'}||(getpwuid($<))[7]).'/lib/perl/');
+   }
+   require "getopts.pl";
+   &Getopts ($opts.'ho:'); 
+   if ($opt_o) {
+      if (!open (STDOUT, '>'.$opt_o)) {
+         print "Error! Cannot redirect output to \"$opt_o\"!\n\n";
+         exit 1;
+      }
+   }
+}
+
+"Atomkraft? Nein, danke!"
+

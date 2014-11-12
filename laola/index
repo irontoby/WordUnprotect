@@ -1,0 +1,45 @@
+#
+# Short description of Laola distribution files.
+#
+
+COPYING			-  GNU General Public License, Version 2, June 1991.
+INDEX			-  This file: contents of Laola distribution.
+INSTALL.TXT		-  How to install Laola distribution.
+ari.html		-  Flyer of Antiracist Initiative Berlin.
+get-perl.html		-  How to get perl.
+guide.html		-  Hacking guide. Explains "Structured Storage".
+history.html		-  History of Laola project.
+index.html		-  LAOLA distribution homepage.
+install			-  Install program, installs LAOLA distribution.
+install.pl		-  Install library for install program.
+laola.pl		-  LAOLA library. Gives access to "structured storage".
+lcle-doc.html		-  Guide to use lclean.
+lcle-out.html		-  Sample output for lclean.
+lclean			-  Cleans Trash in OLE docs.
+ldat			-  Laola Display Authress Title. Shows properties 
+                           of OLE docs.
+ldat-out.html		-  Sample output for ldat.
+lhalw			-  Laola Have A Look at Word: Gets text from word docs.
+lls			-  Laola List: lists structure of an OLE document.
+lls-out.html		-  Sample output for lls.
+ref.html		-  Reference Manual for LAOLA library.
+
+elser/elser		-  Elser: handles Word 6 and Word 7 files.
+elser/elser.html	-  Elser manual.
+elser/elserdb.pl	-  Debugging library for Elser.
+elser/macro.pl		-  Implements macro commands to Elser.
+elser/mapmem.pl		-  Debugging library for Elser.
+elser/password.html	-  About password protection of Word documents.
+elser/pwhash		-  How to compute a password hash.
+elser/sources.html	-  Sources about Georg Elser.
+elser/textutil.pl	-  Text utility library.
+elser/vita.html		-  About Georg Elser.
+elser/vita-d.html	-  About Georg Elser, deutsche Fassung.
+
+elser/word6/decrypt.pl	-  Library to decrypt word 6 documents.
+elser/word6/format.html	-  Documentation of Word 6 binary file format.
+elser/word6/macro.dot	-  Template to create macro.txt in your language.
+elser/word6/macrolib.pl	-  Library to handle word 6 macros.
+elser/word6/macro.txt	-  This file defines macro keywords of WordBasic 6.
+elser/word6/struct.pl	-  This reads the documents data structures.
+

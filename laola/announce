@@ -1,0 +1,28 @@
+Hello,
+
+Just finished: a new distribution of LAOLA. Laola contains source codes 
+and information about the so called "structured storage" format, that is
+the binary format of OLE documents. 
+
+It can be found at:
+
+   http://www.cs.tu-berlin.de/~schwartz/pmh/laola.html
+
+The most important changes are dealing with Word 6 document format. Laola
+now includes a very first approach of a publically specification of Word's
+binary document format. Further more it includes the new program "Elser". 
+Elser is dealing heavily with the document format of Word 6, especially:
+
+   * decodes Word documents (even most documents with no text at all)
+   * lists macros and macro codes
+   * can delete single macros or all macro information
+   * renames auto executable macros and makes them editable
+
+Unfortunately I didn't make it until now to implement a nice html conversion. 
+May be you will like to hear anyway, that I improved the program "lhalw" a 
+little bit. It now can convert "fast saved" word documents to text, also.
+
+Regards,
+
+Martin
+

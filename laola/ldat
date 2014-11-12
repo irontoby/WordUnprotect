@@ -1,0 +1,536 @@
+#!/usr/bin/perl
+#$Id: ldat,v 1.1.1.5 1997/07/01 00:06:43 schwartz Rel $
+#
+# ldat, Laola Display Authress Title
+#
+# This program demonstrates, how to draw information out of property sets. 
+# It requires the free perl package "laola.pl", that can be found at:
+# http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/laola
+#
+# See also usage() of this file. General information at:
+#    http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/index.html
+#
+# Copyright (C) 1996, 1997 Martin Schwartz 
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, you should find it at:
+#
+#    http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/COPYING
+#
+# You can contact me via schwartz@cs.tu-berlin.de
+#
+
+# Please uncomment (remove '#') setting according to your system
+# $sys_os = "unix"; 
+# $sys_os = "dos";  
+$sys_os = "vms";
+$laola_vms = "PERL_ROOT:[LAOLA]laola.pl";
+
+main: {
+   &mystd('ad');
+   local($result)="";
+   &usage if !@ARGV;
+   &debug_property_init if $opt_d;
+
+   foreach $infile (@ARGV) {
+      #
+      # Open the Document
+      #
+      print "Processing \"$infile\": ";
+      if (($result=&laola_open_document($infile)) ne "ok") {
+         print "Error! $result\n";
+         next;
+      }
+      print "\n";
+
+      #
+      # Start examination at Root Property Set (pps handle is always 0) 
+      # with indent level 0 (indent level is just a variable, that enables 
+      # some more proper output formatting).
+      #
+      &do_directory(0,0);
+
+      #
+      # Close the Document
+      #
+      &laola_close_document($infile);
+      print "\n";
+   }
+
+   exit 0;
+}
+
+
+##
+## main things
+##
+
+sub usage {
+   print "usage: ldat [-a] [-d] {document}\n".
+     "Shows some information about the objects stored in Ole/Com documents.\n".
+     "-a    All, show even \"empty\" objects\n".
+     "-d    Debug, some more debug information about special properties\n".
+     "-o    Output, redirect output to <file>\n";
+   exit 0;
+}
+
+sub do_directory {
+   # !recursive!
+   #
+   # void = &do_directory (directory pps, indent level);
+   #
+   local($directory_pps, $level)=@_;
+   local($indent) = "    " x $level;
+   local($pps); 
+   local($type1, $type2, $authress, $lastauth, $title, $appname, 
+         $template, $revnum, @created, @lastsvd, $org, @printer);
+
+   local(%dir)=&laola_get_directory($directory_pps);
+   return if !%dir;
+
+   # 
+   # Read information out of some property sets, if available.
+   #
+   &read_compobj    if $pps = $dir{"\01CompObj"};
+   &read_suminfo    if $pps = $dir{"\05SummaryInformation"};
+   &read_docsuminfo if $pps = $dir{"\05DocumentSummaryInformation"}; 
+
+   #
+   # read some further information out of applications, if known how...
+   #
+   &read_wordinfo   if $pps = $dir{"WordDocument"};
+   &read_excelinfo  if $pps = $dir{"Book"};
+
+   #
+   # read all properties when "debugging"
+   #
+   if ($opt_d) {
+      foreach $pps (values %dir) {
+         &debug_property($pps);
+      }
+   }
+
+   #
+   # print information about current object
+   #
+   show: {
+      if (!$opt_a) {
+         last if !$type1 && !($title || $authress || $appname);
+      }
+      &print_compobj;
+      &print_suminfo;
+      &print_printerinfo;
+   }
+
+   #
+   # Look for directories in current directory (that means, look for
+   # embedded objects). If available, recurse into them. The indenting 
+   # level of the output is growing in that case.
+   #
+   foreach $pps (values %dir) {
+      &do_directory($pps, $level+1) if &laola_is_directory($pps);
+   }
+}
+
+##
+## Output
+## 
+
+sub print_compobj {
+   local($out)="";
+   $out .= "$indent# $type1 ($type2, " if $type1;
+   $out .= "$indent# (unknown, "       if !$type1;
+   $out .= sprintf ("%d.%d.%d %02d:%02d:%02d", 
+      &laola_pps_get_date($directory_pps)
+   );
+   $out .= ", rev $revnum" if $revnum;
+   $out .= ")";
+   print "$out\n";
+}
+
+sub print_suminfo {
+   local($out)="";
+
+   $out .= "$indent  Title: $title\n" if $title;
+   if ($authress || $lastauth) {
+      $out .= "$indent  Authress: $authress";
+      $out .= " (former: $lastauth)" if $lastauth && $lastauth ne $authress;
+      $out .= "\n";
+   }
+   $out .= "$indent  Organization: $org\n"    if $org;
+   $out .= "$indent  Application: $appname\n" if $appname;
+   $out .= "$indent  Template: $template\n"   if $template;
+   if (@created) {
+      $out .= sprintf ("$indent  Created: %d.%d.%d %02d:%02d:%02d\n", 
+         @created
+      );
+   }
+   if (@lastsvd && !&cmp_list(@lastsvd, @created)) {
+      $out .= sprintf ("$indent  Last saved: %d.%d.%d %02d:%02d:%02d\n", 
+         @lastsvd
+      );
+   }
+   print $out;
+}
+
+sub print_printerinfo {
+   if (@printer) {
+      print "$indent  Printer: $printer[0]";
+      print " ($printer[2])" if $printer[2];
+      print "\n";
+   }
+}
+
+
+#
+# -------------- Example 1: Read standard properties ------------------
+# 
+# The next three sub's show how easy it can be, to ask for properties 
+# without being concerned, if they actually are available. If the property 
+# is not available, result is "". You have to have knowledge about the 
+# property ids and the variable types for that ids.
+#
+# E.g.: For property set "\05SummaryInformation" id 2 always stands for 
+#       "title" and always should have the variable type "string".
+#
+
+sub read_compobj {
+   local($type);
+   ($type, $type1)    = &laola_ppset_get_property($pps, 0);
+   ($type, $type2)    = &laola_ppset_get_property($pps, 1);
+}
+
+sub read_suminfo {
+   local($type);
+   ($type, $title)    = &laola_ppset_get_property($pps, 2);
+   ($type, $authress) = &laola_ppset_get_property($pps, 4);
+   ($type, $template) = &laola_ppset_get_property($pps, 7);
+   ($type, $lastauth) = &laola_ppset_get_property($pps, 8);
+   ($type, $revnum)   = &laola_ppset_get_property($pps, 9);
+   ($type, $appname)  = &laola_ppset_get_property($pps, 18);
+   
+   ($type, @created)  = &laola_ppset_get_property($pps, 12);
+   ($type, @lastsvd)  = &laola_ppset_get_property($pps, 13);
+}
+
+sub read_docsuminfo {
+   local($type);
+   ($type, $org)      = &laola_ppset_get_property($pps, 15);
+}
+
+#
+# --------------------------- Special Data -------------------------------
+#
+# Get information out of application data. This requires special knowledge 
+# about the application considered. It actually has nothing to do with OLE 
+# or LAOLA. It might look a little bit strange.
+#
+
+sub read_wordinfo {
+#
+# Word (MSWordDoc) style, read some printer info
+#
+# Word defines a lot of information in its header block. At 0x130
+# is a long offset and a long size of a printer info chunk.
+#
+   local($pairbuf)="";
+   local($infobuf)="";
+   local($o, $l);
+   @printer = ();
+
+   return if &laola_get_file($pps, $pairbuf, 0x130, 8) ne "ok";
+   return if ! ($o = &get_long(0x0, $pairbuf));
+   return if ! ($l = &get_long(0x4, $pairbuf));
+   return if &laola_get_file($pps, $infobuf, $o, $l) ne "ok";
+
+   @printer = ($infobuf =~ /^([^\00]*)\00([^\00]*)\00([^\00]*)/ );
+}
+
+sub read_excelinfo {
+#
+# Excel (Biff5) style, read some printer info 
+#
+# Biff is build as a long chain of data chunks. To find a chunk one has to 
+# go hand over hand through the file. Printer info chunks have the type 0x4d. 
+#
+   @printer = ();
+   local($buf, $infobuf, $l, $o, $type);
+
+   return if &laola_get_file($pps, $buf) ne "ok";
+   local($fsize)=length($buf);
+
+   $o = 0;
+   while ($o<$fsize) {
+      $type = &get_word($o, $buf);
+      $l = &get_word($o+2, $buf);
+      if ($type == 0x4d) {
+         $infobuf = substr($buf, $o+4, $l);
+         last;
+      }
+      $o += (4+$l);
+   }
+   @printer = ($infobuf =~ /^..([^\00]*)\00/ );
+}
+
+sub read_excelinfo_slow { # * Not used *
+#
+# Excel (Biff5) style, read some printer info. 
+#
+# This is alternative to read_excelinfo(). It reads not the whole file at 
+# once, but does many little laola_get_file calls. You can use it to see, 
+# how fast or slow io practically is. In fact you will notice, that many
+# io calls are slower than one io call (hard to believe, isn't it?).
+#
+   @printer = ();
+   local($buf, $infobuf, $l, $o, $type);
+
+   return if &laola_get_file($pps, $buf) ne "ok";
+   local($fsize)=length($buf);
+
+   $o = 0;
+   while ($o<$fsize) {
+      &laola_get_file($pps, $buf, $o, 4);
+      $type = &get_word(0, $buf);
+      $l = &get_word(2, $buf);
+      if ($type == 0x4d) {
+         &laola_get_file($pps, $infobuf, $o+4, $l);
+         last;
+      }
+      $o += (4+$l);
+   }
+   @printer = ($infobuf =~ /^..([^\00]*)\00/ );
+}
+
+#
+# ----------------- Example 2: Read all properties ---------------------
+#
+# "Debug". This shows, how to ask for a list of all available properties. 
+# It is a little bit complicated, as it messes around with data types. In 
+# future versions some of the following code will be moved into laola.pl, 
+# probably.
+#
+
+sub debug_property {
+#
+# void debug_property($pps)
+#
+   local($pps) = shift;
+   local($i, $out, $name);
+   local($result, %ppset);
+   local($vtype, @property);
+
+   return 0 if !&laola_is_file_ppset($pps);
+
+   $name = &laola_pps_get_name($pps);
+   $name =~ s/[^a-zA-Z0-9_]//g;
+   $out .= "--- ppset \"$name\" ";
+   $out .= "-" x (70 - length($out));
+   print "$out\n";
+   print " n id   id name               vartype       contents\n";
+
+   # Get all property set ids
+   ($result, %ppset) = &laola_ppset_get_idset($pps);
+   if ($result ne "ok") {
+      print "\nError! $result\n";
+      return 0;
+   }
+
+   # Get and print all property information
+   $i=1;
+   foreach $token (keys %ppset) {
+      &debug_property_print(
+         1, $i++, $token, 
+         &laola_ppset_get_property($pps, $token)
+      );
+   }
+
+   print "-" x 70 . "\n";
+}
+
+sub debug_property_print {
+#
+# void debug_property_print ($mode, $index, $token, $type, @property)
+#
+# mode  1: print a line with current $index and $token
+#       0: print a line with current $index.$subindex ($subindex is global)
+#
+# index  Just an enum
+# token  Property Set Token
+# type   Property type
+#
+   local($mode, $i, $token, $type, @property)=@_;
+   return undef if !@property;
+
+   # Information about index and token
+   if ($mode) {
+      $out = sprintf ("%2x %x", $i, $token);
+      $out .= " " x (8 - length($out));
+      $out .= sprintf ("\"%s\"", $ppset{$token}) if $ppset{$token};
+      $out .= " " x (28 - length($out));
+      $global_count=0;
+   } else {
+      $global_count++;
+      $out = sprintf("   %x.%02x ", $i, $global_count);
+      $out .= " " x (28 - length($out));
+   }
+
+   # Information about property type. 
+   if ($type != 0xc) {
+      $out .= sprintf ("%4x (%s) ", 
+         $type, $vtype{$type} || "unknown"
+      );
+   } else {
+      # Extra info for type "variant".
+      $out .= sprintf ("%4x (%s) ", 
+         $property[0], $vtype{$property[0]} || "unknown"
+      );
+   }
+      
+   # Fill with blanks upto position 44
+   $out .= " " x (44 - length($out));
+
+   # Print the properties contents
+   if (! ($type & 0x1000)) {
+      # Property is a scalar
+      $out .= &get_property($type, @property);
+      print "$out\n";
+   } else {
+      # Property is an array
+      print "$out\n";
+      while (@property) {
+         # Get one extra line for each array entry
+         &debug_property_print(
+            0, $i, $token, 
+            # The following line shows the code that you have to use
+            # to get the next element of a property vector. It yields
+            # the array ($type, @property):
+            splice(@property, 0, shift(@property))
+         );
+      }
+   } 
+   1;
+}
+
+sub get_property {
+#
+# $string = get_property($type, @property)
+#
+   local($type, @property) = @_;
+   if (!$type || $type==1) { # empty, null
+      return "";
+   } elsif ($type == 0x02) {  # i2
+      return sprintf("%d", $property[0]);
+   } elsif ($type == 0x03) {  # i4
+      return sprintf("%d", $property[0]);
+   } elsif ($type == 0x04) {  # r4
+      return sprintf("%.2f", $property[0]);
+   } elsif ($type == 0x05) {  # r8
+      return sprintf("%.2f", $property[0]);
+   } elsif ($type == 0x0a) {  # error
+      return sprintf("%d", $property[0]);
+   } elsif ($type == 0x0b) {  # bool
+      return sprintf("%d", $property[0]);
+   } elsif ($type == 0x0c) {  # variant
+      return &get_property(@property);
+   } elsif ($type == 0x11) {  # ui1
+      return sprintf("%d", $property[0]);
+   } elsif ($type == 0x12) {  # ui2
+      return sprintf("%d", $property[0]);
+   } elsif ($type == 0x13) {  # ui4
+      return sprintf("%d", $property[0]);
+   } elsif ($type == 0x1e) {  # lpstr
+      return sprintf ("\"$property[0]\"");
+   } elsif ($type == 0x40) {  # filetime
+      if ($property[2]>1601) { 
+         return sprintf ("%02d.%02d.%04d  %02d:%02d:%02d", @property);
+      } else {
+         return '<undef>';
+      }
+   } elsif ($type == "error") {
+      return $property[0];
+   } else {
+      return "";
+   }
+}
+
+sub debug_property_init {
+#
+# Variable Types (still just a subset of types)
+#
+   %vtype = (
+      0x00, "empty",
+      0x01, "null",
+      0x02, "word",
+      0x03, "long",
+      0x04, "real",
+      0x05, "double",
+      0x0b, "bool",
+      0x0c, "variant",
+      0x11, "uchar",
+      0x12, "uword",
+      0x13, "ulong",
+      0x1e, "string",
+      0x40, "filetime"
+   );
+
+   local(@type)=keys(%vtype);
+   for (@type) {
+      $vtype{$_+0x1000} = $vtype{$_}.'[]';
+   }
+}
+
+#
+# ------------------------------ Utils ------------------------------------
+#
+
+sub get_word { return unpack("v", substr($_[1], $_[0], 2)); }
+sub get_long { return unpack("V", substr($_[1], $_[0], 4)); }
+
+sub cmp_list {
+   return if !$#_ % 2;
+   local($i); local($l) = ($#_+1) / 2;
+   for ($i=0; $i<$l; $i++) {
+      return 0 if $_[$i] ne $_[$l+$i];
+   }
+   return 1;
+}
+
+sub mystd {
+   local($opts)=shift;
+   $|=1; $[=0;
+   if (!$sys_os) {
+      # If sys_os is not set explicitly: 
+      #    assume a dos system, if some standard /etc/file not present.
+      $sys_os = "dos";
+      $sys_os = "unix" if 
+         (-e '/etc/group') || (-e '/etc/hosts.equiv') || (-e '/etc/passwd');
+   }
+   if ($sys_os eq "unix") {
+      splice(@INC, 0, 0, 
+             ($ENV{'HOME'}||$ENV{'LOGDIR'}||(getpwuid($<))[7]).'/lib/perl/');
+   }
+   if ($sys_os eq "vms") {
+       require "$laola_vms";
+   } else {
+       require "laola.pl";
+   }
+   require "getopts.pl";
+   &Getopts ($opts.'o:'); 
+   if ($opt_o) {
+      if (!open (STDOUT, '>'.$opt_o)) {
+         print "Error! Cannot redirect output to \"$opt_o\"!\n\n";
+         exit 1;
+      }
+   }
+}
+

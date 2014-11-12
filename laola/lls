@@ -1,0 +1,244 @@
+#!/usr/bin/perl
+#$Id: lls,v 1.1.1.5 1997/07/01 00:06:44 schwartz Rel $
+#
+# lls, Laola List
+#
+# This program lists the structure of ole/com documents.
+# It requires the free perl package "laola.pl", that can be found at:
+# http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/laola
+#
+# See also usage() of this file. General information at:
+#    http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/index.html
+#
+# Copyright (C) 1996, 1997 Martin Schwartz 
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, you should find it at:
+#
+#    http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/COPYING
+#
+# You can contact me via schwartz@cs.tu-berlin.de
+#
+
+useress_global: {
+#
+# Please uncomment (remove '#') / change settings according to your system
+#
+   # $sys_os = "unix"; 
+   # $sys_os = "dos";  
+$sys_os = "vms"
+$laola_vms = "PERL_ROOT:[LAOLA]laola.pl";
+
+   $targetdir="analyze"; # This is the output directory
+}
+
+main: {
+   &mystd('ds'); 
+   &usage if !@ARGV;
+   local($basename);
+
+   foreach $infile (@ARGV) {
+      $global_pps_count=0;
+      $basename = &basename($infile);
+
+      print "Processing \"$infile\":\n";
+      if ( ($status=&laola_open_document($infile)) ne "ok" ) {
+         print "Error! $status\n\n";
+         next;
+      }
+
+      if ($opt_s||$opt_d) {
+         $targetdir=$basename if $opt_d;
+         if (&targetdir($targetdir)) {
+            $global_outpath = $targetdir."/".$basename;
+         } else {
+            $global_outpath = undef;
+         }
+      }
+
+      &ppss_info();
+      &do_directory(0,0);
+      &laola_close_document($infile);
+      print "\n";
+   }
+   exit 0;
+}
+
+
+##
+## main things
+##
+
+sub usage {
+   print "usage: lls [-s] [-d] [-o <file>] {document}\n";
+   print "List the property storages of Ole/Com documents\n";
+   print "-d  Directory, save all files in an own directory,\n".
+         "    e.g. in directory \"test\" for document \"test.doc\"\n";
+   print "-o  Output, redirect output to <file>\n";
+   print "-s  Save all streams as files in directory \"$targetdir\"\n";
+   exit 0;
+}
+
+sub do_directory {
+   # !recursive!
+   local($directory_pps, $level)=@_;
+   local($i, $name, $status);
+   local(@dir)=&laola_get_dirhandles($directory_pps);
+
+   for ($i=0; $i<=$#dir; $i++) {
+      &pps_info($i, $dir[$i], $level);
+      if (&laola_is_file($dir[$i])) {
+         $status = &pps_save($global_outpath, $dir[$i]);
+         print "Error! $status\n" if $status ne "ok";
+      } elsif (&laola_is_directory($dir[$i])) {
+         &do_directory($dir[$i], $level+1);
+      }
+   }
+}
+
+
+##
+## Info things
+##
+
+sub ppss_info {
+   #
+   # generate some information about the root entry of the property 
+   # set storage
+   #
+   &pps_info(0,0,0);
+}
+
+sub pps_info {
+   #
+   # generate a line of information about the current property storage
+   #
+   local($i, $pps, $level)=@_;
+   local($name, $out)=("", "");
+   ($name=&laola_pps_get_name($pps)) =~ s/[^_a-zA-Z0-9]/ /g;
+
+   $out = sprintf ("%2x: " . ("   " x $level) . "%2x '%s' (pps %x) ",
+                   $global_pps_count++,         $i+1, $name,   $pps);
+   $out .= " " x (54 - length($out));
+
+   # info about the properties type
+   if (&laola_is_directory($pps)) {
+      $out .= &laola_is_root($pps) ? "ROOT" : "DIR ";
+      $out .= sprintf(" %02d.%02d.%04d %02d:%02d:%02d ", 
+              &laola_pps_get_date($pps));
+   } elsif (&laola_is_file($pps)) {
+      $out .= sprintf("FILE        %6x bytes ", &laola_get_filesize($pps));
+   } else {
+      $out.="unknown type!";
+   }
+
+   print $out . "\n";
+}
+
+
+##
+## Save things
+##
+
+sub targetdir {
+   #
+   # If none exists, create a $targetdirectory. This will be readable only to
+   # the person owning the directory.
+   #
+   local($dir)=shift;
+   local($oldumask, $tmp);
+   return 1 if -d $dir;
+
+   if ($sys_os eq "unix") {
+      $oldumask = umask; umask 0;
+         $tmp = mkdir ($dir, 0700);
+      umask $oldumask;
+   } else {
+      $tmp = mkdir ($dir, 0700);
+   }
+   if ($tmp) {
+      print "Created directory \"$targetdir\"\n";
+   } else {
+      print "Cannot create directory \"$targetdir\"!\n";
+   }
+   $tmp;
+}
+
+sub pps_save {
+   #
+   # Copies the current property stream to an own file as: 
+   # targetdir/basename.xx, where xx is the hex number of the property 
+   # storage
+   #
+   local($outfilebasename, $pps)=@_;
+
+   return "ok" if !($opt_s||$opt_d);
+   return "ok" if !$outfilebasename; # warning already done
+
+   local($outname)="$outfilebasename.". sprintf ("%02x", $pps);
+
+   if (! (open(OUT, ">".$outname) && binmode(OUT)) ) {
+      return "Cannot open \"$outname\"!";
+   }
+
+   local($result, $tmp)=("ok", "");
+   if (&laola_get_file($pps, $tmp)) {
+      print OUT $tmp;
+   } else {
+      $result = sprintf ("Error while reading pps #%x", $pps);
+   }
+   close(OUT); 
+
+   $result;
+}
+
+##
+## utils
+##
+
+sub basename {
+#
+# $basename = basename($filepath)
+#
+   (substr($_[0], rindex($_[0],'/')+1) =~ /(^[^.]*)/) && $1;
+}
+
+sub mystd {
+   local($opts)=shift;
+   $|=1; $[=0;
+   if (!$sys_os) {
+      # If sys_os is not set explicitly: 
+      #    assume a dos system, if some standard /etc/file not present.
+      $sys_os = "dos";
+      $sys_os = "unix" if 
+         (-e '/etc/group') || (-e '/etc/hosts.equiv') || (-e '/etc/passwd');
+   }
+   if ($sys_os eq "unix") {
+      splice(@INC, 0, 0, 
+             ($ENV{'HOME'}||$ENV{'LOGDIR'}||(getpwuid($<))[7]).'/lib/perl/');
+   }
+   if ($syos eq "vms") {
+     require "$laola_vms";
+   } else {
+     require "laola.pl";
+   }
+   require "getopts.pl";
+   &Getopts ($opts.'o:'); 
+   if ($opt_o) {
+      if (!open (STDOUT, '>'.$opt_o)) {
+         print "Error! Cannot redirect output to \"$opt_o\"!\n\n";
+         exit 1;
+      }
+   }
+}
+

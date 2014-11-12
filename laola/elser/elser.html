@@ -1,0 +1,105 @@
+<html><head><title>Elser, Jun/30/97</title></head>
+<body bgcolor="#ffffff" link="#0000ff" alink="#ff0000" vlink="#0000c0">
+<!-- $Id: elser.html,v 0.1.1.7 1997/07/01 00:06:45 schwartz Rel $ -->
+
+&nbsp;<p><H1 align=left><font color=#7f007f>Elser</font></H1>
+
+<H2><font color=#008000>Word convertress</font></H2>
+
+<H4>Version 0.1.1 ALPHA from Apr/15/97</H4>
+
+Elser is a program that actually was designed to convert Word documents
+easily to HTML documents. Anyway, this is a pretty difficult task. So the
+current release of Elser does many things, except such a conversion. Assume 
+to see a very first result done on the way to understand Word and then to 
+convert it.<p>
+
+I decided to publish this anyway. I hope the distribution will offer hints 
+to persons also researching on Word Document format. Further more I think,
+the performance on macro and password tasks already is quite ok.<p>
+
+<H4><font color=#7f007f>Available actions</font></H4>
+
+<dl>
+<dt>Elser -i {document(s)}
+<dd>Informs shortly about the document. Details are:<br>
+    <ul>
+    <li><font color=#cf0000>word6, word7, word8</font><br>
+        Word version used to create document.
+    <li><font color=#cf0000>PW "Kohl muﬂ weg!"</font><br>
+        Document was stored using password "Kohl muﬂ weg!"
+    <li><font color=#cf0000>no macros</font><br>
+        This document contains no macros and therefore no virus, too.
+    <li><font color=#cf0000>no virus?, virus?, virus!?</font><br>
+        Document might contain / contains probably / very probably contains
+        a virus.
+    <li><font color=#cf0000>template</font><br>
+        Document is actually not a document, but a template. Templates
+	and documents are nearly the same, but word stores macros in
+        templates, only.
+    <li><font color=#cf0000>fastsaved!</font><br>
+        Document is stored in "FastSave" Format. This is bad.
+    </ul>
+<p>
+<dt>Elser -D {document(s)}
+<dd>Renames those macros, that could be executed automatically. Should be
+    used mostly in conjunction with option -E, I suppose.
+<p>
+<dt>Elser -E {document(s)}
+<dd>Word can store macros in a way that prevents from editing them. -E
+    would make them editable again.
+<p>
+<dt>Elser -m {document(s)}
+<dd>Lists all macros and menus included in the document. In the current
+    state it doesn't show buttons, that could be installed by the document.
+<p>
+<dt>Elser -M #+ {document(s)}
+<dd>Prints the code of all macros of document(s) to stdout. The output
+    will be german. That's stupid if you have a non german Word Version,
+    as your Word program will not understand this output. To create
+    output according to your language, follow the instructions in Word 
+    file <a href=word6/macro.dot>word6/macro.dot</a>.<p>
+    If you have an English Word, you might look at Mike Janda's
+    (<a href="mailto:mike.janda@mpcug.com">mike.janda@mpcug.com</a>)
+    quick and fine DOS program 
+    <a href=http://www.bocklabs.wisc.edu/~janda/programs.html>LWM</a>.
+<p>
+<dt>Elser -R {document(s)}
+<dd>Removes the password protection from documents. This is a little bit
+    <font color=#cf0000>dangerous</font>, as Elser not always gets
+    the perfectly right key. Always keep a copy from the password protected 
+    document until you are sure, that "elser -R" didn't crush the original.
+<p>
+<dt>Elser -Y #+ {document(s)}
+<dd>Removes irreversible and definitely all macro information. Use this 
+    if you really don't like to have any macro in a document. It does
+    not only clean the macro code, but it also cleans the macro 
+    definition section.
+<p>
+<dt>Elser -Y AutoExec {document(s)}
+<dd>Would remove the macro code for macro "AutoExec". As Word decides not
+    between lower and upper characters, this is same as e.g. "autoexec" 
+    or "AuToExEc".
+<p>
+<p>
+
+<p>
+<dt>Elser -o macro12.txt -M #1,2 {document(s)}
+<dd>Prints the code of macros number 1 and 2 to file "macro12.txt". Macro
+    numbers are those showed with "elser -m".
+<p>
+</dl>
+
+A last note to performance. As Perl normally is installed as interpretra, 
+it lacks in speed at certain operations. Therefore decoding documents and
+macros takes very long time. As decoding macros is done nearly always when
+looking at documents, e.g. an "elser -i" really could take some time.
+
+<p>Back to <a href=../index.html>Laola</a> homepage.<p>
+
+Yours,<p>
+
+<font color=#c06000>Martin Schwartz</font><p>
+
+</body></html>
+

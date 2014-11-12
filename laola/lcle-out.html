@@ -1,0 +1,57 @@
+<html><head><title>FYI: LAOLA file system, Mar/23/97</title></head>
+<body bgcolor="#ffffff" link="#0000ff" alink="#ff0000" vlink="#0000c0">
+&nbsp;<p><H1 align=left><font color=#7f007f>LAOLA</font></H1>
+
+<H3>Sample output of "lclean"</H3>
+The considered document <a href="http://www.microsoft.com/VBASIC/techinfo/LEGACY1.doc">LEGACY1.doc</A> (414 KB) lies at Microsoft<p>
+&nbsp;<br>
+kir:> <b>ls -l LEGACY1.doc</b><pre>
+-rw-r--r--   1 schwartz users      423424 Mar  9 15:57 LEGACY1.doc</pre><p>
+kir:> <br>
+&nbsp;<p>
+<em>Usage of lclean:</em><p>
+kir:> <b>lclean</b><pre>
+
+lclean  Modify trash sections of OLE documents, like Excel or Word.
+        Version 1.0 from May/19/97
+usage:  lclean -r {document}              Report documents trash
+        lclean -c [-n] {document}         Clean document
+        lclean -s [-a][-d][-z] {document} Save documents trash sections
+        lclean -i &lt;file&gt; [-a] {document}  Insert (hide) a file in OLE documents
+        lclean -l {document}              List the hidden file in OLE documents
+        lclean -e [-f][-z] {document}     Extract hidden file from OLE documents
+-a  All. When saving the trash sections, use one big file.
+    When inserting a hidden file, use all trash space (1+2+4+8).
+-c  Clean trash sections. Will be done (after -s) and (before -i).
+-d  Directory, store trash sections in own directory. Eg "test" for "test.doc".
+-e  Extract the hidden file out of OLE documents, if there is one.
+-f  Force, always overwrite existing files when extracting.
+-i  Insert a &lt;file&gt; into the document. Use only trash space (1+2).
+-l  List the hidden file in OLE documents, if there is one.
+-n  Null, use null bytes instead of random bytes for cleaning trash type 4.
+-r  Report, gives a little report about the trash sections.
+-s  Save all trash sections into directory "doctrash".
+-z  Zero, don't create zero length files.
+
+ATTENTION: when cleaning a document or when inserting a file into, keep a
+           backup until you are sure, that the modified file will be ok!
+
+</pre><p>
+kir:> <br>
+kir:> <b>lclean -r LEGACY1.doc</b><pre>
+Processing "LEGACY1.doc": 
+Trash (and system) report:
+   Type 1   (Big blocks): 23040 bytes
+   Type 2 (Small blocks):     0 bytes
+   Type 4   (File space):  3343 bytes
+   Type 8 (System space):   824 bytes
+                 1+2:     23040 of 423424 bytes (5.4 %)
+                 1+2+4+8: 27207 of 423424 bytes (6.4 %)
+Done.
+
+</pre><p>
+kir:> <br>
+<p>
+Back to <a href="index.html">Laola</a> Homepage.
+<p></body></html>
+

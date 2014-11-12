@@ -1,0 +1,118 @@
+#
+# $Id: install,v 0.5.1.6 1997/07/01 00:06:41 schwartz Rel $
+#
+# Install, installs LAOLA library and Elser.
+#
+# For a description please refer to INSTALL.TXT
+#
+# Copyright (C) 1997 Martin Schwartz 
+#
+
+# If this install program reports any errors, please uncomment and change 
+# settings according to your system. (To uncomment a line, simply remove 
+# the leading '#'). Normally it should not be necessary to make any changes.
+# An uncommented entry always overwrites any attempts to figure out values
+# automatically.
+
+#
+# Unix systems, global installation:
+# Note: If existing, Laola programs always prefer a local library.
+#
+  # $sys_os      = "unix"; $opt_g=1;
+  # $LibraryPath = "/usr/lib/laola";
+  # $ExecutePath = "/usr/bin";
+  # $dir_permit=0700; $lib_permit=0600; $exe_permit=0700;
+  # $PerlExePath = "/usr/bin/perl";
+
+#
+# Unix systems, local installation:
+# Note: "~" here is the only allowed way to express "home directory".
+#
+  # $sys_os      = "unix"; 
+  # $LibraryPath = "~/lib/laola";
+  # $ExecutePath = "~/bin";
+  # $dir_permit=0755; $lib_permit=0644; $exe_permit=0755;
+  # $PerlExePath = "/usr/bin/perl";
+
+#
+#  VMS system
+#
+
+ $sys_os      = "vms";
+ $LibraryPath = "PERL_ROOT:[LAOLA]";
+ $ExecutePath = "PERL_ROOT:[LAOLA]";
+ $dir_permit=0700; $lib_permit=0666; $exe_permit=0700;
+ $PerlExePath = "PERL_ROOT:[000000]PERL.EXE"; 
+
+#
+# DOS systems: 
+# Note: Use slashs instead of backslashs, like in example below.
+#
+  # $sys_os      = "dos"; 
+  # $LibraryPath = "C:/TOOLS/LAOLA";
+  # $ExecutePath = "C:/DOS";
+  # $dir_permit=0777; $lib_permit=0666; $exe_permit=0777;
+  # $PerlExePath = "C:/PERL/PERL.EXE"; 
+
+## End of userEss definable options.
+
+main: {
+   &collect_files;
+   $usage = "Laola library and Elser";
+   require "./install.pl";
+   &install();
+}
+
+sub collect_files {
+   @dist_dirs = (
+      "elser/word6", "elser"
+   );
+   @dist_files = (
+      # misc
+      "COPYING", "get-perl.html", 
+      # laola
+      "INDEX", "announce", 
+      "ari.html", "guide.html", "history.html", "index.html", "install", 
+      "install.pl", "INSTALL.TXT", "laola.pl", "lclean", "lcle-doc.html", 
+      "lcle-out.html", "ldat", "ldat-out.html", "lhalw", "lls", 
+      "lls-out.html", "ref.html",
+      # elser
+      "elser/elser", "elser/elserdb.pl", "elser/elser.html", "elser/macro.pl",
+      "elser/mapmem.pl", "elser/password.html", "elser/pwhash", 
+      "elser/sources.html", "elser/textutil.pl", 
+      "elser/vita.html", "elser/vita-d.html",
+      "elser/word6/decrypt.pl", "elser/word6/format.html",
+      "elser/word6/macro.dot", "elser/word6/macrolib.pl", 
+      "elser/word6/macro.txt", "elser/word6/struct.pl",
+   );
+   %dist_binary = (
+      "elser/word6/macro.dot", 1
+   );
+   @lib_dirs = (
+      "elser", "elser/word6"
+   );
+   %lib_files = (
+   #  $DistributionPath/         $LibraryPath/ Your system, sources stored here
+      "laola.pl",                "laola.pl",
+      "elser/elserdb.pl",        "elser/elserdb.pl",
+      "elser/macro.pl",          "elser/macro.pl",
+      "elser/mapmem.pl",         "elser/mapmem.pl",
+      "elser/textutil.pl",       "elser/textutil.pl",
+      "elser/word6/decrypt.pl",  "elser/word6/decrypt.pl",
+      "elser/word6/macrolib.pl", "elser/word6/macrolib.pl",
+      "elser/word6/macro.txt",   "elser/word6/macro.txt",
+      "elser/word6/struct.pl",   "elser/word6/struct.pl",
+   );
+   %executables = (
+   #  $DistributionPath/        $ExecutablePath/ Your system, executables
+      "elser/elser",            "elser",  
+      "lclean",                 "lclean", 
+      "ldat",                   "ldat",   
+      "lhalw",                  "lhalw",  
+      "lls",                    "lls",    
+   );
+   @remove = (
+      "install", "install.pl", "INSTALL.TXT"
+   )
+}
+

@@ -1,0 +1,2018 @@
+<html><head><title>Elser, $Date: 1997/07/01 00:06:47 $</title></head>
+<body bgcolor="#ffffff" link="#0000ff" alink="#ff0000" vlink="#0000c0">
+<!-- $Id: format.html,v 0.1.1.5 1997/07/01 00:06:47 schwartz Rel $ -->
+
+&nbsp;<p><H1 align=left><font color=#7f007f>Elser</font></H1>
+
+<H2><font color=#008000>Word convertress</font></H2>
+
+<H4><font color=#c00000>Very</font> alpha Näherung of an independent<br>
+Word 6.0 Document Format specification</H4>
+
+<H5>Copyright &copy; 1997 by Martin Schwartz</H5>
+
+This document is part of <a href=../../index.html>Laola</a>, a distribution
+dealing among other things with Word 6 style documents. These are documents
+done with Word 6 or with Word for Windows '95 alias Word 7. This release of
+the specification is very first, and it is highly speculative. It is not
+valid for Word 8 documents. It's neither complete, nor systematically
+verified. It's rather buggy, strange, incomplete and it is probable that
+many things will be changed or at least renamed in future. Please be aware
+of this, when using.  
+<p>
+
+If you are not familiar with Word, you might notice, that this description
+doesn't fit to the document you are inspecting. This is, because the "real"
+Word document is put into an envelope. You can retrieve the document from 
+its envelope with Microsoft's OLE library, or by using Laola library.
+Laola HomePage can be found at:<p>
+&nbsp; &nbsp; &nbsp; <a href=http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/index.html>http://wwwwbs.cs.tu-berlin.de/~schwartz/pmh/index.html</a><br>
+or:<br>
+&nbsp; &nbsp; &nbsp; <a href=http://user.cs.tu-berlin.de/~schwartz/pmh/index.html>http://user.cs.tu-berlin.de/~schwartz/pmh/index.html</a><p>
+
+Last but not least a note about nomenclature: though I tried to check
+against freely available Microsoft documents like the RTF specification, I'm
+afraid in many cases I've simply been lacking of time, information or I
+misinterpreted information. I hope the degree of confusion will be 
+sustainable.<p>
+
+<a href=mailto:schwartz@cs.tu-berlin.de>Comments</a> appreciated!<p>
+
+Martin Schwartz<p>
+
+<hr><p>
+
+<H3>Table of Contents</H3>
+<H4><ol>
+<li><a href=#data_types>Data Types</a>
+<li><a href=#word_header>Word Header</a>
+<p>
+<li><a href=#anchors>Anchors</a>
+<li><a href=#charf>Character Formats</a>
+<li><a href=#fastsave_info>Fastsave Info</a>
+<li><a href=#field_info>Field Info</a>
+<li><a href=#font_info>Font Info</a>
+<li><a href=#footnote_info>Footnote Info</a>
+<li><a href=#format_codes>Format Codes</a>
+<li><a href=#macro_info>Macro Info</a>
+<li><a href=#parf>Paragraph Formats</a>
+<li><a href=#par_info>Paragraph Info</a>
+<li><a href=#print_info>PrinterEss Info</a>
+<li><a href=#stylesheet>Style Sheet</a>
+<li><a href=#summary_info>Summary Information</a>
+</ol></H4>
+
+<p><hr><p>
+
+<a name=data_types>
+<H4><font color=#7f007f>Data Types</font></H4>
+<table border=1>
+<tr align=center><td rowspan=2><b>type</b><td rowspan=2><b>Name</b>
+   <td colspan=2><b>Structure</b><td rowspan=2><b>Information</b>
+<tr align=center><td>offset<td>type<br>
+
+<tr valign=top><td rowspan=4 valign=center align=center>Arrange
+    <td><b>thing(n)</b>
+    <td>00
+    <td>thing<br>[0..n-1]
+    <td>An n element array of thing.
+<tr valign=top><td><b>thing( )</b>
+    <td>00
+    <td>thing<br>[0..]
+    <td>An array of thing, where the number of elements is not known.
+<tr valign=top><td><b>empty</b>
+    <td>&nbsp;
+    <td>&nbsp;
+    <td>Nothing. Takes 0 byte space.
+<tr valign=top rowspan=2><td><b>even</b>
+    <td>00 
+    <td>byte<br>empty
+    <td>0 on odd addresses.<br>Empty on even addresses.<br>
+    This <em>even</em> makes an address even.
+
+<tr valign=top><td rowspan=5 valign=center align=center>Offset
+    <td><b>blocko</b><td>00<td>word<td>n<br>fileo == n * 0x200 
+<tr valign=top><td><b>fileo</b><td>00<td>long
+    <td>Offset relative to begin of file
+<tr valign=top><td><b>texto</b><td>00<td>long
+    <td>Offset relative to begin of text.<br>
+    Equals not (!) text_begin + texto 
+<tr valign=top><td><b>footo</b><td>00<td>long
+    <td>Offset relative to begin of footnote text.<br>
+    texto == text_len + footo
+<tr valign=top><td><b>desto</b><td>00<td>long
+    <td>Offset relative to begin of destination text.<br>
+    texto == text_len + foot_len + desto
+
+<tr valign=top><td rowspan=4 valign=center align=center>String
+    <td><b>str(n)</b>
+    <td>00
+    <td>char(n)
+    <td>A n byte long text string.
+<tr valign=top><td><b>bstr</b>
+    <td>00<br>01
+    <td>char<br>str(n)
+    <td>n<br>A n byte long text string.
+<tr valign=top><td><b>wstr</b>
+    <td>00<br>02
+    <td>word<br>str(n)
+    <td>n<br>A n byte long text string.
+<tr valign=top><td><b>zstr</b>
+    <td>00<br>n
+    <td>str(n)<br>char 0
+    <td>A n byte long text string, ending with a further<br> zero byte.
+
+<tr valign=top><td rowspan=2 valign=center align=center>Struct
+    <td><b>pair</b>
+    <td>00<br>04
+    <td>fileo<br>long
+    <td>Pointer to a structure.<br>Size of a structure.
+<tr valign=top><td><b>struct</b>
+    <td>00
+    <td>char( )
+    <td>An arbitrary sized array of bytes.
+
+</table>
+
+<a name=word_header>&nbsp;<p>
+<H4><font color=#7f007f>Word Header</font></H4>
+<table border=1 cols=4>
+<tr><td><b>offset</b><td><b>type</b><td><b>value</b>
+   <td><b>Information</b>
+<tr valign=top><td>00  <td>long  <td><a href=#word_id>word_id</a>
+   <td>Word identifier
+<tr valign=top><td>04  <td>long  <td><a href=#word_rev>word_rev</a>
+   <td>Word Revision identifier
+<tr valign=top><td>08  <td>blocko <td>next_doc
+   <td>At this offset a new word header starts. Master doc feature?
+<tr valign=top><td>0a  <td>word  <td><a href=#doc_status>doc_status</a>
+   <td>Bitmask showing if document is a template, crypted and more
+<tr valign=top><td>0c  <td>word  <td>0x65, 0x00
+   <td>unknown
+<tr valign=top><td>0e  <td>word  <td>pw_hash 
+   <td>Calculated from password. See program <a href=../pwhash>pwhash</a>.
+<tr valign=top><td>10  <td>word  <td>pw_key
+   <td>Calculated from password. Unknown how. If one knows the crypt 
+   key, this value can be used to calculate the password. See routine 
+   get_password in word6::decrypt.pl
+<tr valign=top><td>12  <td>word  <td>0
+   <td>unknown
+<tr valign=top><td>14  <td>word  <td>0
+   <td>unknown
+<tr valign=top><td>16  <td>word  <td>0
+   <td>unknown
+<tr valign=top><td>18  <td>long  <td>text_begin
+   <td>Begin of first text chunk. Usually 0x300.
+<tr valign=top><td>1c  <td>long  <td>text_end
+   <td>End of first text chunk.
+<tr valign=top><td>20  <td>long  <td>file_len
+   <td>Size of document in bytes.
+<tr valign=top><td>24  <td>long  <td>0
+   <td>unknown
+<tr valign=top><td>28  <td>long  <td>0
+   <td>unknown
+<tr valign=top><td>2c  <td>long  <td>0
+   <td>unknown
+<tr valign=top><td>30  <td>long  <td>0
+   <td>unknown
+<tr valign=top><td>34  <td>long  <td>text_len
+   <td>Length of all text of this document. At not "fast saved"
+       documents this often is text_end minus text_begin.
+<tr valign=top><td>38  <td>long  <td>foot_len
+   <td>Length of footnote text.
+<tr valign=top><td>3c  <td>long  <td>dest_len
+   <td>Length of "destination" text.
+<tr valign=top><td>40  <td>long  <td>0
+   <td>unknown
+<tr valign=top><td>44  <td>long  <td>&nbsp;
+   <td>(something with pair 0x080)
+<tr valign=top><td>48  <td>long  <td>0
+   <td>unknown
+<tr valign=top><td>4c  <td>long  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>50  <td>long  <td>0
+   <td>unknown
+<tr valign=top><td>54  <td>long  <td>0
+   <td>(something with pair 0x222)
+<tr valign=top><td>58  <td>pair  <td><a href=#stylesheet>stylesheet</a>
+   <td>Style sheet.
+<tr valign=top><td>60  <td>pair  <td>stylesheet_copy
+   <td>Always same values as pair 0x58.
+<tr valign=top><td>68  <td>pair  <td><a href=#footnote_info>footnote_info</a>
+   <td>Footnote info.
+<tr valign=top><td>70  <td>pair  <td><a href=#footnote_o>footnote_offsets</a>
+   <td>Footnote offsets.
+<tr valign=top><td>78  <td>pair  <td>&nbsp;
+   <td>unknown. comment_info?
+<tr valign=top><td>80  <td>pair  <td>&nbsp;
+   <td>unknown, long() 
+<tr valign=top><td>88  <td>pair  <td><a href=#section_info>section_info</a>
+   <td>&nbsp;
+<tr valign=top><td>90  <td>pair  <td><a href=#par_info>par_info</a>
+   <td>&nbsp;
+<tr valign=top><td>98  <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>a0  <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>a8  <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>b0  <td>pair  <td><a href=#dest_o>dest_offsets</a>
+   <td>&nbsp;
+<tr valign=top><td>b8  <td>pair  <td><a href=#charf>charf_block_info</a>
+   <td>Offset to character format block descriptions.
+<tr valign=top><td>c0  <td>pair  <td><a href=#parf>parf_block_info</a>
+   <td>Offset to paragraph format block descriptions.
+<tr valign=top><td>c8  <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>d0  <td>pair  <td><a href=#font_info>font_info</a>
+   <td>&nbsp;
+<tr valign=top><td>d8  <td>pair  <td><a href=#field_info>field_info</a>
+   <td>&nbsp;
+<tr valign=top><td>e0  <td>pair  <td><a href=#dfield_info>dest_field_info</a>
+   <td>&nbsp;
+<tr valign=top><td>e8  <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>f0  <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>f8  <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>100 <td>pair  <td><a href=#anchors>anchor_names</a>
+   <td>&nbsp;
+<tr valign=top><td>108 <td>pair  <td><a href=#anchors>anchor_begin_o</a>
+   <td>&nbsp;
+<tr valign=top><td>110 <td>pair  <td><a href=#anchors>anchor_end_o</a>
+   <td>&nbsp;
+<tr valign=top><td>118 <td>pair  <td><a href=#macro_info>macro_info</a>
+   <td>&nbsp;
+<tr valign=top><td>120 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>128 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>130 <td>pair  <td><a href=#printer_info>printer_info</a>
+   <td>&nbsp;
+<tr valign=top><td>138 <td>pair  <td>printer 1
+   <td>&nbsp;
+<tr valign=top><td>140 <td>pair  <td>printer 2
+   <td>&nbsp;
+<tr valign=top><td>148 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>150 <td>pair  <td><a href=#summary_info>summary_info</a>
+   <td>&nbsp;
+<tr valign=top><td>158 <td>pair  <td><a href=#summary_info>summary_strings</a>
+   <td>&nbsp;
+<tr valign=top><td>160 <td>pair  <td><a href=#fastsave_info>fastsave_info</a>
+   <td>&nbsp;
+<tr valign=top><td>168 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>170 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>178 <td>pair  <td>&nbsp;
+   <td>unknown. comment_info?
+<tr valign=top><td>180 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>188 <td>word  <td>0
+   <td>&nbsp;
+<tr valign=top><td>18a <td>blocko <td>charf_blocko_first
+   <td>First char format offset
+<tr valign=top><td>18c <td>blocko <td>parf_blocko_first
+   <td>First par format offset 
+<tr valign=top><td>18e <td>word  <td>charf_blocko_num
+   <td>Number of char format offsets 
+<tr valign=top><td>190 <td>word  <td>parf_blocko_num
+   <td>Number of par format offsets 
+<tr valign=top><td>192 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>19a <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>1a2 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>1aa <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>1b2 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>1ba <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>1c2 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>1ca <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>1d2 <td>pair  <td>&nbsp;
+   <td>unknown. math_info?
+<tr valign=top><td>1da <td>pair  <td>&nbsp;
+   <td>unknown. math_info?
+<tr valign=top><td>1e2 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>1ea <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>1f2 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>1fa <td>pair  <td>&nbsp;
+   <td>former authresses
+<tr valign=top><td>202 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>20a <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>212 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>21a <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>222 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>22a <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>232 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>23a <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>242 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>242 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>252 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>25a <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>262 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>26a <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>272 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>27a <td>pair  <td>&nbsp;
+   <td>unknown. math_info?
+<tr valign=top><td>282 <td>pair  <td>&nbsp;
+   <td>unknown. math_info?
+<tr valign=top><td>28a <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>292 <td>pair  <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>29a <td>pair  <td><a href=#history_info>history_info</a>
+   <td>Former authresses and paths.
+<tr valign=top><td>2a2 <td>pair  <td>&nbsp;
+   <td>unknown
+</table><p>
+
+<a name=word_id><p>
+<table border=1>
+<tr><td align=center>0x00 long<td><b>word_id</b>
+<tr><td>Value<td>Information
+<tr><td>0065a5dc<td>&nbsp;
+<tr><td>0068a5dc<td>&nbsp;
+<tr><td>0068a697<td>&nbsp;
+<tr><td>0068a699<td>&nbsp;
+<tr><td>00c1a5ec<td>&nbsp;
+</table><p>
+
+<a name=word_rev><p>
+<table border=1>
+<tr><td align=center>0x04 long<td><b>word_rev</b>
+<tr><td>Value<td>Information
+<tr><td>0407c02d <td>Word 6
+<tr><td>0407c035 <td>Word 6
+<tr><td>0407c03d <td>Word 6.0c
+<tr><td>0409c033 <td>Word 6
+<tr><td>0409c03d <td>Word 6
+<tr><td>0409c03f <td>Word 6
+<tr><td>0409c041 <td>Word 6
+<tr><td>0409c047 <td>Word 6
+<tr><td>0409e057 <td>Word 7
+<tr><td>0409e063 <td>Word 7
+<tr><td>04070049 <td>Word 8
+</table><p>
+
+<a name=doc_status>
+<table border=1>
+<tr><td colspan=2 align=center>0x0a word<td><b>doc_status</b>
+<tr><td><b>Bit</b><td><b>Value</b><td><b>Document Information</b>
+<tr><td>00<td>TEMPLATE <td>Is a template
+<tr><td>01<td>&nbsp;<td>&nbsp;
+<tr><td>02<td>FASTSAVE <td>Is stored in "fast save" format
+<tr><td>03<td>&nbsp;<td>Contains graphics?
+<tr><td>04<td>&nbsp;<td>&nbsp;
+<tr><td>05<td>&nbsp;<td>&nbsp;
+<tr><td>06<td>&nbsp;<td>&nbsp;
+<tr><td>07<td>&nbsp;<td>&nbsp;
+<tr><td>08<td>CRYPT <td>Has a password
+<tr><td>09<td>&nbsp;<td>Unicode characters?
+<tr><td>0a<td>&nbsp;<td>&nbsp;
+<tr><td>0b<td>&nbsp;<td>&nbsp;
+<tr><td>0c<td>&nbsp;<td>&nbsp;
+<tr><td>0d<td>&nbsp;<td>&nbsp;
+<tr><td>0e<td>&nbsp;<td>&nbsp;
+<tr><td>0f<td>&nbsp;<td>&nbsp;
+</table><p>
+
+<a name=stylesheet>&nbsp;<p>
+<H4><font color=#7f007f>Style sheet</font></H4>
+<table border=1>
+<tr><td colspan=3 align=center>0x58 pair<td><b>stylesheet</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00<td>word<td>type<td>Type of style sheet. Following
+   structure is valid for type 0x0e, only. 
+   (Have Unicode documents type 0x12?)
+<tr valign=top><td>02<td>word<td>&nbsp;<td>unknown
+<tr valign=top><td>04<td>word<td>08<td>unknown
+<tr valign=top><td>06<td>word<td>01<td>unknown
+<tr valign=top><td>08<td>word<td>4b<td>unknown
+<tr valign=top><td>0a<td>word<td>0f<td>unknown
+<tr valign=top><td>0c<td>word<td>00<td>unknown
+<tr valign=top><td>0e<td>word<td>&nbsp;<td>unknown
+<tr valign=top><td>10<td>struct( )<td>stylesheet_entry
+   <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>stylesheet_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00<td>word<td>size<td>Size of entry -2. Value zero 
+   means, that this entry is not available. Rest of this entry then is
+   missing.
+<tr valign=top><td>02<td>byte<td><a href=#style_id>style_id</a>
+   <td>Style ID. 0xfe for styles defined by userEss.
+<tr valign=top><td rowspan=2>03<td rowspan=2>byte<td rowspan=2>class
+   <td>class & 0x0f == 0: standard style<br>
+       class & 0x0f == 0xf: userEss style
+   <tr><td>class & 0xf0: unknown
+<tr valign=top><td rowspan=3>04<td rowspan=3>word<td rowspan=3>prevstyle
+   <td>bits 00..03: gender <br>1==paragraph, 2==character
+   <tr><td>bits 04..11: number of prev style
+   <tr><td>bits 12..15: state <br>0==valid, 0xf==invalid
+<tr valign=top><td rowspan=3>06<td rowspan=3>word<td rowspan=3>nextstyle
+   <td>bits 00..03: antigender <br>1==character, 2==paragraph
+   <tr><td>bits 04..11: <br> paragraphs: number of next style<br>
+      characters: this style's number
+   <tr><td>bits 12..15: state <br>always 0
+<tr valign=top><td>08<td>word<td>size
+   <td>Same as at offset 00.
+<tr valign=top><td>0a<td>bstr<td>name
+   <td>Name of style.
+<tr valign=top><td>&nbsp;<td>even<td>&nbsp;
+   <td>&nbsp;
+<tr valign=top><td>xx<td>struct<td>stylesheet par_entry
+   <td>Paragraph format entry. See below. Only, if gender & 1.
+<tr valign=top><td>&nbsp;<td>even<td>&nbsp;
+   <td>&nbsp;
+<tr valign=top><td>yy<td>struct<td>stylesheet char_entry
+   <td>Character format entry. See below. Always.
+</table><p>
+
+<a name=stylesheet_par_entry>
+<table border=1>
+<tr><td colspan=4><b>stylesheet_par_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00<td>word<td>size
+   <td>Size of following data.
+<tr valign=top><td>02<td>word<td>style_num
+   <td>Style number.
+<tr valign=top><td>04<td>str(size-2)<td>format
+   <td>Paragraph format string. 
+</table><p>
+
+<a name=stylesheet_char_entry>
+<table border=1>
+<tr><td colspan=4><b>stylesheet_char_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00<td>wstr<td>format
+   <td>Character format string.
+</table><p>
+
+
+<a name=style_id>&nbsp;<p>
+<table border=1>
+<tr valign=top><td colspan=3 align=left><b>style_id</b><td>Information
+<tr valign=top><td>Num <td>Type (english)<td>ID (deutsch)<td>&nbsp;
+<tr valign=top><td>00<td>Normal               <td>Standard              <td>&nbsp;
+<tr valign=top><td>01<td>Heading 1            <td>Überschrift 1         <td>&nbsp;
+<tr valign=top><td>02<td>Heading 2            <td>Überschrift 2         <td>&nbsp;
+<tr valign=top><td>03<td>Heading 3            <td>Überschrift 3         <td>&nbsp;
+<tr valign=top><td>04<td>Heading 4            <td>Überschrift 4         <td>&nbsp;
+<tr valign=top><td>05<td>Heading 5            <td>Überschrift 5         <td>&nbsp;
+<tr valign=top><td>06<td>Heading 6            <td>Überschrift 6         <td>&nbsp;
+<tr valign=top><td>07<td>Heading 7            <td>Überschrift 7         <td>&nbsp;
+<tr valign=top><td>08<td>Heading 8            <td>Überschrift 8         <td>&nbsp;
+<tr valign=top><td>09<td>Heading 9            <td>Überschrift 9         <td>&nbsp;
+<tr valign=top><td>0a<td>Index 1              <td>Index 1               <td>&nbsp;
+<tr valign=top><td>0b<td>Index 2              <td>Index 2               <td>&nbsp;
+<tr valign=top><td>0c<td>Index 3              <td>Index 3               <td>&nbsp;
+<tr valign=top><td>0d<td>Index 4              <td>Index 4               <td>&nbsp;
+<tr valign=top><td>0e<td>Index 5              <td>Index 5               <td>&nbsp;
+<tr valign=top><td>0f<td>Index 6              <td>Index 6               <td>&nbsp;
+<tr valign=top><td>10<td>Index 7              <td>Index 7               <td>&nbsp;
+<tr valign=top><td>11<td>Index 8              <td>Index 8               <td>&nbsp;
+<tr valign=top><td>12<td>Index 9              <td>Index 9               <td>&nbsp;
+<tr valign=top><td>13<td>TOC 1                <td>Verzeichnis 1         <td>&nbsp;
+<tr valign=top><td>14<td>TOC 2                <td>Verzeichnis 2         <td>&nbsp;
+<tr valign=top><td>15<td>TOC 3                <td>Verzeichnis 3         <td>&nbsp;
+<tr valign=top><td>16<td>TOC 4                <td>Verzeichnis 4         <td>&nbsp;
+<tr valign=top><td>17<td>TOC 5                <td>Verzeichnis 5         <td>&nbsp;
+<tr valign=top><td>18<td>TOC 6                <td>Verzeichnis 6         <td>&nbsp;
+<tr valign=top><td>19<td>TOC 7                <td>Verzeichnis 7         <td>&nbsp;
+<tr valign=top><td>1a<td>TOC 8                <td>Verzeichnis 8         <td>&nbsp;
+<tr valign=top><td>1b<td>TOC 9                <td>Verzeichnis 9         <td>&nbsp;
+<tr valign=top><td>1c<td>Normal Indent        <td>Standardeinzug        <td>&nbsp;
+<tr valign=top><td>1d<td>Footnote Text        <td>Fußnotentext          <td>&nbsp;
+<tr valign=top><td>1e<td>Annotation Text      <td>Anmerkungstext        <td>&nbsp;
+<tr valign=top><td>1f<td>Header               <td>Kopfzeile             <td>&nbsp;
+<tr valign=top><td>20<td>Footer               <td>Fußzeile              <td>&nbsp;
+<tr valign=top><td>21<td>Index Heading        <td>Indexüberschrift      <td>&nbsp;
+<tr valign=top><td>22<td>Caption              <td>Beschriftung          <td>&nbsp;
+<tr valign=top><td>23<td>&nbsp;               <td>Abbildungsverzeichnis <td>&nbsp;
+<tr valign=top><td>24<td>&nbsp;               <td>Absenderadresse       <td>&nbsp;
+<tr valign=top><td>25<td>&nbsp;               <td>Umschlagadresse       <td>&nbsp;
+<tr valign=top><td>26<td>Footnote Reference   <td>Fußnotenzeichen       <td>&nbsp;
+<tr valign=top><td>27<td>Annotation Reference <td>Anmerkungszeichen     <td>&nbsp;
+<tr valign=top><td>28<td>Line Number          <td>Zeilennummer          <td>&nbsp;
+<tr valign=top><td>29<td>Page Number          <td>Seitenzahl            <td>&nbsp;
+<tr valign=top><td>2a<td>Endnote Reference    <td>Endnotenzeichen       <td>&nbsp;
+<tr valign=top><td>2b<td>Endnote Text         <td>Endnotentext          <td>&nbsp;
+<tr valign=top><td>2c<td>&nbsp;               <td>Zusatz 2              <td>&nbsp;
+<tr valign=top><td>2d<td>&nbsp;               <td>Makrotext             <td>&nbsp;
+<tr valign=top><td>2e<td>&nbsp;               <td>Zusatz 1              <td>&nbsp;
+<tr valign=top><td>2f<td>List                 <td>Liste                 <td>&nbsp;
+<tr valign=top><td>30<td>List Bullet,UL       <td>Aufzählungszeichen,UL <td>&nbsp;
+<tr valign=top><td>31<td>List Bullet,OL       <td>Listennummer,OL       <td>&nbsp;
+<tr valign=top><td>32<td>List 2               <td>Liste 2               <td>&nbsp;
+<tr valign=top><td>33<td>List 3               <td>Liste 3               <td>&nbsp;
+<tr valign=top><td>34<td>List 4               <td>Liste 4               <td>&nbsp;
+<tr valign=top><td>35<td>List 5               <td>Liste 5               <td>&nbsp;
+<tr valign=top><td>36<td>List Bullet 2        <td>Aufzählungszeichen 2  <td>&nbsp;
+<tr valign=top><td>37<td>List Bullet 3        <td>Aufzählungszeichen 3  <td>&nbsp;
+<tr valign=top><td>38<td>List Bullet 4        <td>Aufzählungszeichen 4  <td>&nbsp;
+<tr valign=top><td>39<td>List Bullet 5        <td>Aufzählungszeichen 5  <td>&nbsp;
+<tr valign=top><td>3a<td>List Number 2        <td>Listennummer 2        <td>&nbsp;
+<tr valign=top><td>3b<td>List Number 3        <td>Listennummer 3        <td>&nbsp;
+<tr valign=top><td>3c<td>List Number 4        <td>Listennummer 4        <td>&nbsp;
+<tr valign=top><td>3d<td>List Number 5        <td>Listennummer 5        <td>&nbsp;
+<tr valign=top><td>3e<td>Title                <td>Titel                 <td>&nbsp;
+<tr valign=top><td>3f<td>&nbsp;               <td>Grußformel            <td>&nbsp;
+<tr valign=top><td>40<td>&nbsp;               <td>Unterschrift          <td>&nbsp;
+<tr valign=top><td>41<td>Default Paragraph Font <td>Absatz-Standardschriftart <td>&nbsp;
+<tr valign=top><td>42<td>Body Text            <td>Textkörper            <td>&nbsp;
+<tr valign=top><td>43<td>&nbsp;               <td>Textkörper-Einzug     <td>&nbsp;
+<tr valign=top><td>44<td>&nbsp;               <td>Listenfortsetzung     <td>&nbsp;
+<tr valign=top><td>45<td>&nbsp;               <td>Listenfortsetzung 2   <td>&nbsp;
+<tr valign=top><td>46<td>&nbsp;               <td>Listenfortsetzung 3   <td>&nbsp;
+<tr valign=top><td>47<td>&nbsp;               <td>Listenfortsetzung 4   <td>&nbsp;
+<tr valign=top><td>48<td>&nbsp;               <td>Listenfortsetzung 5   <td>&nbsp;
+<tr valign=top><td>49<td>&nbsp;               <td>Nachrichtenkopf       <td>&nbsp;
+<tr valign=top><td>4a<td>Subtitle             <td>Untertitel            <td>&nbsp;
+</table><p>
+
+
+
+<a name=footnote_info>&nbsp;<p>
+<H4><font color=#7f007f>Footnote Info</font></H4>
+
+The footnote texts are stored regularly in the text section.<p>
+
+<table border=1>
+<tr><td colspan=3 align=center>0x68 pair<td><b>footnote_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00<td>texto(n+1)<td>anchor
+   <td>Offset to footnotes anchor. This is, where the footnote mark will be.
+       n = (size-4)/6
+<tr valign=top><td>xx<td>word(n)<td>number
+   <td>Number of footnote.
+</table>
+
+<a name=footnote_o>&nbsp;<p>
+<table border=1>
+<tr><td colspan=3 align=center>0x70 pair<td><b>footnote_offsets</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr><td>00<td>footo(n)<td>offset
+   <td>Offset to footnotes text. n=size/4
+</table><p>
+
+
+<a name=section_info>&nbsp;<p>
+<H4><font color=#7f007f>Section Info</font></H4>
+<table border=1>
+<tr><td colspan=3 align=center>0x88 pair<td><b>section_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr><td>00<td>texto(n+1) <td>offset
+   <td>&nbsp;
+<tr><td>xx<td>struct(n) <td>section_info_entry
+   <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>section_info_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>word <td>&nbsp; 
+   <td>&nbsp;
+<tr valign=top><td>02 <td>fileo <td>section_entry
+   <td>&nbsp;
+<tr valign=top><td>06 <td>word <td>&nbsp; 
+   <td>&nbsp;
+<tr valign=top><td>08 <td>long <td>&nbsp; 
+   <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>section_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>wstr <td>secf
+   <td>format
+</table><p>
+
+
+<a name=par_info>&nbsp;<p>
+<H4><font color=#7f007f>Paragraph Info</font></H4>
+<table border=1>
+<tr><td colspan=3 align=center>0x90 pair<td><b>par_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr><td>00<td>texto(n+1)<td>offset
+   <td>Offset to paragraph
+<tr><td>xx<td>struct(n)<td>par_info_entry
+   <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>par_info_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>word <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>02 <td>word <td>style
+   <td>Style number of paragraph
+</table><p>
+
+
+<a name=dest_o>&nbsp;<p>
+<H4><font color=#7f007f>Destinations</font></H4>
+<table border=1>
+<tr><td colspan=3 align=center>0xb0 pair<td><b>dest_o</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00<td>desto( ) <td>&nbsp; <td>&nbsp;
+</table><p>
+
+
+<a name=charf>&nbsp;<p>
+<H4><font color=#7f007f>Character Formats</font></H4>
+
+<table border=1>
+<tr><td colspan=3 align=center>0xb8 pair<td><b>charf_block_info</b>
+<tr><td colspan=4>If charf_blocko_num equals not n, this table here is 
+   invalid. Then char format blockos are charf_blocko_num consequent 
+   blockos starting with blocko number charf_blocko_first. (See Header -> 
+   0x18a, 0x18e)
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00<td>texto(n+1) <td>&nbsp;
+   <td>First offset of character format blocko #i.
+<tr valign=top><td>xx<td>blocko(n) <td>&nbsp;
+   <td>Character format offsets.
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>charf_block</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>fileo(n+1) <td>text_o
+   <td>Offset to text.
+<tr valign=top><td>xx <td>struct(n) <td>charf_info
+   <td>&nbsp;
+<tr valign=top><td>yy <td>struct(n) <td>charf_style
+   <td><tt>yy[i] = fod_o[i] ?<br> fod_o*2 : default;</tt>
+<tr valign=top><td>1ff<td>byte <td>n
+   <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>charf_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>fod_offset
+   <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>charf_style</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>bstr <td>format
+   <td>Character format string.<br>
+       See <a href=#format_codes>format codes</a>.<br>
+</table><p>
+
+
+<a name=parf>&nbsp;<p>
+<H4><font color=#7f007f>Paragraph Formats</font></H4>
+
+<table border=1>
+<tr><td colspan=3 align=center>0xc0 pair<td><b>parf_block_info</b>
+<tr><td colspan=4>If parf_blocko_num equals not n, this table here is invalid.
+   Then paragraph format blockos are parf_blocko_num consequent blockos 
+   starting with blocko number parf_blocko_first. (See Header -> 0x18c, 0x190)
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00<td>texto (n+1) <td>&nbsp;
+   <td>First offset of paragraph format blocko #i.
+<tr valign=top><td>xx<td>blocko (n) <td>parf_blocko
+   <td>Offsets to paragraph format blocks.
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>parf_block</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>fileo (n+1) <td>text_o
+   <td>Offset to text.
+<tr valign=top><td>xx <td>struct (n) <td>parf_entry 
+   <td>&nbsp;
+<tr valign=top><td>yy <td>struct (n) <td>parf_style
+   <td><tt>&nbsp;
+<tr valign=top><td>1ff<td>byte <td>n
+   <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>parf_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td rowspan=2>00 <td rowspan=2>byte
+   <td>0       <td>default style
+   <tr valign=top>
+   <td>style_o <td>according parf_style has offset style_o*2
+<tr valign=top><td>01 <td>struct <td>parf_info 
+   <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>parf_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte (6) <td>&nbsp;
+   <td>unknown
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>parf_style</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>l
+   <td>Size of following data in words(!)
+<tr valign=top><td>01 <td>word <td>parf_style_num
+   <td>Paragraph style number. Refers to stylesheet_par_entry.style_num?
+<tr valign=top><td>03 <td>str(2*l-2) <td>format
+   <td>Paragraph format codes.<br>
+       See <a href=#format_codes>format codes</a>.<br>
+</table><p>
+
+<a name=format_codes>&nbsp;<p>
+<H4><font color=#7f007f>Format . Codes</font></H4>
+
+<table border=1>
+<tr><td colspan=5>Units
+<tr><td>&nbsp; <td><b>twip</b> <td><b>point</b> <td><b>inch</b> <td><b>cm</b>
+<tr valign=top><td><b>1 twip = </b> <td>1      <td>1/20  <td>1/1440 <td>0.00176
+<tr valign=top><td><b>1 point = </b><td>20     <td>1     <td>1/72   <td>0.03528
+<tr valign=top><td><b>1 inch = </b> <td>1440   <td>72    <td>1      <td>2.54
+<tr valign=top><td><b>1 cm = </b>   <td>566.9  <td>28.34 <td>0.3937 <td>1
+</table><p>
+
+<table border=1>
+<tr><td colspan=5><b>Format Types</b>
+<tr><td><b>Format type</b><td><b>Offset</b><td><b>Type</b><td><b>Value</b><td><b>Information</b>
+<tr valign=top><td rowspan=2>.thing <td>00<td>byte<td>ID<td>&nbsp;
+    <tr><td>01<td>thing<td>A thing with id ID.<td>&nbsp;
+<tr><td>distance<td>00<td>word<td>n <td>A distance of n twips.
+<tr valign=top><td>option<td>00<td>byte<td>0,1,2,...<td>&nbsp;
+<tr valign=top><td>switch<td>00<td>byte<td>0,1<td>0=off, 1=on
+</table><p>
+
+<table border=1>
+<tr><td colspan=7><b>Format Codes</b>
+<tr><td>ID<td>Offsets<td>Type<td>Value<td>English<td>Deutsch
+<tr valign=top>
+   <td>00
+   <td>00
+   <td>byte
+   <td>0
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+   <td>02
+   <td>00
+   <td>.word
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+   <td>05
+   <td>00
+   <td>.option
+   <td><a href=#align_type>type</a>
+   <td>Paragraph alignment
+   <td>Absatz Ausrichtung
+
+<tr valign=top>
+   <td>07
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>&nbsp;
+   <td>Zeilen nicht trennen
+
+<tr valign=top>
+   <td>08
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>&nbsp;
+   <td>Absätze nicht trennen
+
+<tr valign=top>
+   <td>09
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>&nbsp;
+   <td>Seitenwechsel oberhalb
+
+<tr valign=top>
+<td rowspan=2>0c
+   <td>00
+   <td>.byte
+   <td>size
+   <td>unknown
+   <td>&nbsp;
+<tr valign=top>
+   <td>02
+   <td>byte(size)
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+   <td>0d
+   <td>00
+   <td>.option
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+   <td>0e
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>&nbsp;
+   <td>Zeilennummern unterdrücken
+
+<tr valign=top>
+<td rowspan=5>0f
+   <td>00
+   <td>.word
+   <td>size
+   <td>Tabulator definition, size of following structure
+   <td>&nbsp;
+<tr valign=top>
+   <td>03
+   <td>byte
+   <td>n
+   <td>&nbsp;
+   <td>&nbsp;
+<tr valign=top>
+   <td>04
+   <td>byte
+   <td>0x53
+   <td>&nbsp;
+   <td>&nbsp;
+<tr valign=top>
+   <td>05
+   <td>distance<br>(n)
+   <td>pos
+   <td>&nbsp;
+   <td>Tabulatorpositionen
+<tr valign=top>
+   <td>xx
+   <td>word(n)
+   <td><a href=#tab_type>type</a>
+   <td>&nbsp;
+   <td>Tabulatortypen
+
+<tr valign=top>
+<td rowspan=1>10
+   <td>00
+   <td>.distance
+   <td>n
+   <td>&nbsp;
+   <td>Einzug rechts
+
+<tr valign=top>
+<td rowspan=1>11
+   <td>00
+   <td>.distance
+   <td>n
+   <td>&nbsp;
+   <td>Einzug links
+
+<tr valign=top>
+<td>13
+   <td>00
+   <td>.distance
+   <td>n
+   <td>&nbsp;
+   <td>Einzug erste Zeile
+
+<tr valign=top>
+<td rowspan=2>14
+   <td>00
+   <td>.distance
+   <td>n
+   <td>&nbsp;
+   <td>Zeilenabstand.<br>n&gt;0: mindestens n<br>n&lt;0: genau -n
+<tr valign=top>
+   <td>03
+   <td>switch
+   <td>&nbsp;
+   <td>&nbsp;
+   <td>off==einfach<br>on==mehrfach
+
+<tr valign=top>
+<td>15
+   <td>00
+   <td>.distance
+   <td>n
+   <td>&nbsp;
+   <td>Abstand vor
+
+<tr valign=top>
+<td>16
+   <td>00
+   <td>.distance
+   <td>n
+   <td>&nbsp;
+   <td>Abstand nach
+
+<tr valign=top>
+<td>18
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>New table cell
+   <td>Neue Tabellenspalte
+
+<tr valign=top>
+<td>19
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>New table row
+   <td>Neue Tabellenreihe
+
+<tr valign=top>
+<td>1b
+   <td>00
+   <td>.distance
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>1c
+   <td>00
+   <td>.word
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>1d
+   <td>00
+   <td>.byte
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>2c
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>&nbsp;
+   <td>Silbentrennung aus
+
+<tr valign=top>
+<td>33
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>&nbsp;
+   <td>Absatzkontrolle (1)
+
+<tr valign=top>
+<td valign=top rowspan=2>44
+   <td>00
+   <td>byte
+   <td>0x44
+   <td>&nbsp;
+   <td>Einfügen?
+<tr valign=top>
+   <td>01<br>02
+   <td>byte<br>fileo
+   <td>4<br>ptr
+   <td>&nbsp;<br>&nbsp;
+   <td>Something?<br>Ptr to something?
+
+<tr valign=top>
+<td>4a
+   <td>00
+   <td>.byte(4)
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>50
+   <td>00
+   <td>.word
+   <td>style_num
+   <td>Select character style style_num
+   <td>&nbsp;
+
+<tr valign=top>
+<td>55
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>bold
+   <td>fett
+
+<tr valign=top>
+<td>56
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>italic
+   <td>kursiv
+
+<tr valign=top>
+<td>57
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>strike through
+   <td>durchgestrichen
+
+<tr valign=top>
+<td>5a
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>small caps
+   <td>Kapitälchen
+
+<tr valign=top>
+<td>5b
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>capitals
+   <td>Großbuchstaben
+
+<tr valign=top>
+<td>5c
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>hidden
+   <td>verborgen
+
+<tr valign=top>
+<td>5d
+   <td>00
+   <td>.word
+   <td><a href=#font_info>n</a>
+   <td>Font #n
+   <td>Zeichensatz #n
+
+<tr valign=top>
+<td>5e
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>underline
+   <td>unterstrichen
+
+<tr valign=top>
+<td>60
+   <td>00
+   <td>.distance
+   <td>n
+   <td>&nbsp;
+   <td>Laufweite<br>n&gt;0: sperren um n<br>n&lt;0: schmälern um -n
+
+<tr valign=top>
+<td>61
+   <td>00
+   <td>.distance
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>62
+   <td>00
+   <td>.option
+   <td><a href=#colors>color</a>
+   <td>Foreground Color #color
+   <td>&nbsp;
+
+<tr valign=top>
+<td>63
+   <td>00
+   <td>.word
+   <td>n
+   <td>&nbsp;
+   <td>Zeichensatz mit<br>n/2 Punkte Größe
+
+<tr valign=top>
+<td>65
+   <td>00
+   <td>.word
+   <td>n
+   <td>&nbsp;
+   <td>n&gt;0: n/2 Punkte höherstellen<br>n&lt;0: -n/2 Punkte tieferstellen
+
+<tr valign=top>
+<td>67
+   <td>00
+   <td>.option
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>68
+   <td>00
+   <td>.option
+   <td>0,1,2
+   <td>&nbsp;
+   <td>0==normal<br>1==hochgestellt<br>2==tiefgestellt
+
+<tr valign=top>
+<td>6b
+   <td>00
+   <td>.word
+   <td>n
+   <td>&nbsp;
+   <td>n&gt;0: unterschneiden ab n/2 Punkte<br>n&lt;0: -n/2 Punkte ?
+
+<tr valign=top>
+<td>75
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>End of text section mark
+   <td>&nbsp;
+
+<tr valign=top>
+<td rowspan=2>88
+   <td>00
+   <td>.byte
+   <td>n
+   <td>&nbsp;
+   <td>Spaltennummer {0..}
+<tr valign=top>
+   <td>02
+   <td>distance
+   <td>width
+   <td>&nbsp;
+   <td>Spaltenbreite
+
+<tr valign=top>
+<td rowspan=2>89
+   <td>00
+   <td>.byte
+   <td>n
+   <td>&nbsp;
+   <td>Spaltennummer {0..}
+<tr valign=top>
+   <td>02
+   <td>distance
+   <td>dist
+   <td>&nbsp;
+   <td>Spaltenabstand
+
+<tr valign=top>
+<td>8a
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>8e
+   <td>00
+   <td>.option
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>90
+   <td>00
+   <td>.distance
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>99
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>9e
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>&nbsp;
+   <td>Linie zwischen Spalten
+
+<tr valign=top>
+<td>a4
+   <td>00
+   <td>.distance
+   <td>&nbsp;
+   <td>&nbsp;
+   <td>Seitenbreite?
+
+<tr valign=top>
+<td>a5
+   <td>00
+   <td>.distance
+   <td>&nbsp;
+   <td>&nbsp;
+   <td>Seitenhöhe?
+
+<tr valign=top>
+<td>b4
+   <td>00
+   <td>.byte
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>b6
+   <td>00
+   <td>.word
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>b8
+   <td>00
+   <td>.distance
+   <td>&nbsp;
+   <td>&nbsp;
+   <td>Halber Abstand zwischen zwei Zellen
+
+<tr valign=top>
+<td>b9
+   <td>00
+   <td>.switch
+   <td>&nbsp;
+   <td>&nbsp;
+   <td>Kein Seitenwechsel in Zeile?
+
+<tr valign=top>
+<td>ba
+   <td>00
+   <td>.byte
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+<tr valign=top>
+<td>bb<td>00
+   <td>.struct
+   <td><a href=#border_row>rborder</a>
+   <td>Border definition for a whole table row.
+   <td>&nbsp;
+
+<tr valign=top>
+<td>bd
+   <td>00
+   <td>.distance
+   <td>&nbsp;
+   <td>Height of one table row.
+   <td>Höhe einer Tabellenreihe.
+
+<tr valign=top>
+<td rowspan=5>be
+   <td>00
+   <td>.byte
+   <td>size
+   <td>&nbsp;
+   <td>Table definition, size of following structure. If size is not
+       enough for this structure, missing data will be assumed to have
+       value zero.
+<tr valign=top>
+   <td>02
+   <td>byte
+   <td>0
+   <td>unknown
+   <td>&nbsp;
+<tr valign=top>
+   <td>03
+   <td>byte
+   <td>n
+   <td>&nbsp;
+   <td>&nbsp;
+<tr valign=top>
+   <td>4
+   <td>distance<br>(n+1)
+   <td>pos
+   <td>&nbsp;
+   <td>Position der horizontalen Tabellenstege
+<tr valign=top>
+   <td>xx
+   <td>struct(n)
+   <td><a href=#border_cell>cborder</a>
+   <td>n border definitions for n cells.
+   <td>&nbsp;
+
+<tr valign=top>
+<td rowspan=2>bf
+   <td>00
+   <td>.byte
+   <td>size
+   <td>Table definition, size of following structure
+   <td>&nbsp;
+<tr valign=top>
+   <td>02
+   <td>distance<br>(size/2)
+   <td>width
+   <td>&nbsp;
+   <td>Breite der Tabellenzellen?
+
+<tr valign=top>
+<td>c0
+   <td>00
+   <td>.word
+   <td>&nbsp;
+   <td>unknown
+   <td>&nbsp;
+
+</table><p>
+
+
+<a name=align_type>
+<table border=1>
+<tr valign=top>
+   <td colspan=3><b>Paragraph alignment</b>
+<tr><td>Value <td>English <td>Deutsch
+<tr><td>0x00  <td>left    <td>links
+<tr><td>0x01  <td>center  <td>zentriert
+<tr><td>0x02  <td>right   <td>rechts
+<tr><td>0x03  <td>justify <td>block
+</table><p>
+
+<a name=tab_type>
+<table border=1>
+<tr><td colspan=3><b>Tabulator types</b>
+<tr><td>Value <td>English       <td>Deutsch
+<tr><td>0x00  <td>left          <td>Links
+<tr><td>0x01  <td>right         <td>Rechts
+<tr><td>0x02  <td>decimal       <td>Dezimal
+<tr><td>0x03  <td>vertical line <td>Vertikale Linie
+<tr><td>0x04  <td>dots          <td>Punkte
+<tr><td>0x08  <td>hyphens       <td>Kleine Striche
+<tr><td>0x10  <td>line          <td>Linie
+</table><p>
+
+<a name=colors>
+<table border=1>
+<tr><td colspan=3><b>Standard Colors?</b>
+<tr><td>Value<td>English<td>Deutsch
+<tr><td>0x00  <td>&nbsp; <td>?
+<tr><td>0x01  <td>&nbsp; <td>schwarz
+<tr><td>0x02  <td>&nbsp; <td>hellblau
+<tr><td>0x03  <td>&nbsp; <td>helltürkis
+<tr><td>0x04  <td>&nbsp; <td>hellgrün
+<tr><td>0x05  <td>&nbsp; <td>hellviolett
+<tr><td>0x06  <td>&nbsp; <td>hellrot
+<tr><td>0x07  <td>&nbsp; <td>gelb
+<tr><td>0x08  <td>&nbsp; <td>weiß
+<tr><td>0x09  <td>&nbsp; <td>blau
+<tr><td>0x0a  <td>&nbsp; <td>türkis
+<tr><td>0x0b  <td>&nbsp; <td>grün
+<tr><td>0x0c  <td>&nbsp; <td>violett
+<tr><td>0x0d  <td>&nbsp; <td>rot
+<tr><td>0x0e  <td>&nbsp; <td>braun
+<tr><td>0x0f  <td>&nbsp; <td>grau
+<tr><td>0x10  <td>&nbsp; <td>grau
+</table><p>
+
+
+<a name=border_cell>
+<table border=1>
+<tr valign=top><td colspan=5><b>Border Definition For One Cell</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00
+   <td>&nbsp;
+   <td>0
+   <td>unknown
+<tr valign=top><td>02
+   <td>distance
+   <td>top
+   <td>Thickness of top line.
+<tr valign=top><td>04
+   <td>distance
+   <td>left
+   <td>&nbsp;
+<tr valign=top><td>06
+   <td>distance
+   <td>bottom
+   <td>&nbsp;
+<tr valign=top><td>08
+   <td>distance
+   <td>right
+   <td>&nbsp;
+</table><p>
+
+<a name=border_row>
+<table border=1>
+<tr valign=top><td colspan=5><b>Border Definition For A Whole Table Row</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00
+   <td>distance
+   <td>outer_top?
+   <td>Thickness of line?
+<tr valign=top><td>02
+   <td>distance
+   <td>outer_left?
+   <td>&nbsp;
+<tr valign=top><td>04
+   <td>distance
+   <td>outer_bottom?
+   <td>&nbsp;
+<tr valign=top><td>06
+   <td>distance
+   <td>outer_right?
+   <td>&nbsp;
+<tr valign=top><td>08
+   <td>distance
+   <td>inner_horizontal?
+   <td>&nbsp;
+<tr valign=top><td>0a
+   <td>distance
+   <td>inner_vertical?
+   <td>&nbsp;
+</table><p>
+
+
+
+<a name=font_info>&nbsp;<p>
+<H4><font color=#7f007f>Font Info</font></H4>
+<table border=1>
+<tr><td colspan=3 align=center>0xd0 pair<td><b>font_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00<td>word<td>size<td>Size of structure.
+<tr valign=top><td>02<td>struct( )<td>font_entry<td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>font_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>size
+   <td>Size of following structure.
+<tr valign=top><td>01 <td>byte <td><a href=#font_family>family</a>
+   <td>Font family.
+<tr valign=top><td>02 <td>byte <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>03 <td>byte <td>&nbsp;
+   <td>unknown
+<tr valign=top><td>04 <td>byte <td><a href=#font_charsets>charset</a>
+   <td>Character set identifier.
+<tr valign=top><td>05 <td>byte <td>altname_o
+   <td>Offset to alternative font name.
+<tr valign=top><td>06 <td>zstr <td>name
+   <td>Name of font
+<tr valign=top><td rowspan=2>06 + altname_o
+   <td>empty <td>&nbsp; <td>&nbsp;
+   <tr valign=top><td>zstr <td>altname <td>Alternative font name.
+</table><p>
+
+<a name=font_family>
+<table border=1>
+<tr><td colspan=4><b>Font Family</b>
+<tr><td>Bits<td>Value<td>Information
+<tr><td rowspan=3>0..1<td>00<td>Default pitch
+     <tr valign=top><td>01<td>Fixed pitch
+     <tr valign=top><td>02<td>Variable pitch
+<tr><td>2..3<td>&nbsp;<td>unknown
+<tr><td rowspan=7>4..7<td>00<td>nil, unknown or default
+     <tr valign=top><td>10<td>Roman
+     <tr valign=top><td>20<td>Swiss
+     <tr valign=top><td>30<td>Modern
+     <tr valign=top><td>40<td>Script
+     <tr valign=top><td>50<td>Decor
+     <tr valign=top><td>other<td>?
+</table><p>
+
+<a name=font_charsets>
+<table border=1>
+<tr><td colspan=4><b>Font Character Sets</b>
+<tr><td>Value<td>Information
+<tr><td>00<td>ANSI
+<tr><td>02<td>SYMBOL
+<tr><td>80<td>SHIFTJIS
+<tr><td>88<td>unknown
+<tr><td>a1<td>GREEK
+<tr><td>a2<td>TURKISH
+<tr><td>b1<td>HEBREW
+<tr><td>b2<td>ARABICSIMPLIFIED
+<tr><td>b3<td>ARABICTRADITIONAL
+<tr><td>b4<td>ARABICUSER
+<tr><td>b5<td>HEBREWUSER
+<tr><td>cc<td>CYRILLIC
+<tr><td>ee<td>EASTERNEUROPE
+<tr><td>fe<td>PC437
+<tr><td>ff<td>OEM
+</table><p>
+
+<a name=field_info>&nbsp;<p>
+<H4><font color=#7f007f>Field Info</font></H4>
+<table border=1>
+<tr><td colspan=3 align=center>0xd8 pair<td><b>field_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>texto(n+1) <td>&nbsp;
+   <td>Offset to field mark. The first byte at offset equals to
+       the value of the ID byte of the according struct. If ID of the
+       next field mark is less or equal to current ID, between offset+1 
+       of the current field mark and the offset of the following 
+       field mark stands a text.
+<tr valign=top><td rowspan=3>xx <td rowspan=3>struct(n) 
+   <td>field_cmd <td>Command token. s.b.
+   <tr><td>field_name <td>Defined by system or userEss 
+   <tr><td>field_end <td>unknown
+</table><p>
+
+<a name=dfield_info>
+<table border=1>
+<tr><td colspan=3 align=center>0xe0 pair<td><b>dest_field_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>desto(n+1) <td>&nbsp;
+   <td>Like field_info. Offsets here don't refer to body text, but to
+       destination text.
+<tr valign=top><td rowspan=3>xx <td rowspan=3>struct(n) 
+   <td>field_cmd <td>Command token. s.b.
+   <tr><td>field_name <td>Defined by system or userEss 
+   <tr><td>field_end <td>unknown
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>field_cmd</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>0x13 <td>ID
+<tr valign=top><td>01 <td>byte <td><a href=#field_codes>code</a> <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>field_name</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>0x14<br>0x94 <td>ID
+<tr valign=top><td>01 <td>byte <td>0xff <td>unknown
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>field_end</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>0x15<br>0x95 <td>ID
+<tr valign=top><td>01 <td>byte 
+   <td>0x40<br>0x80<br>0xc0 
+   <td>unknown
+</table><p>
+
+<a name=field_codes>
+<table border=1>
+<tr valign=top><td colspan=4><b>Field Codes</b>
+<tr valign=top><td>Value<td>English<td>Deutsch<td>Parameter example
+<tr valign=top><td>03   <td>REF             <td>REF
+    <td>Figure1 
+<tr valign=top><td>06   <td>SET             <td>BESTIMMEN
+    <td>&nbsp;
+<tr valign=top><td>07   <td>IF              <td>WENN
+    <td>&nbsp;
+<tr valign=top><td>08   <td>INDEX           <td>INDEX
+    <td>\c "2"
+<tr valign=top><td>0a   <td>STYLEREF        <td>FVREF         
+    <td>"Gliederung 1"
+<tr valign=top><td>0c   <td>SEQ             <td>SEQ
+    <td>&nbsp;
+<tr valign=top><td>0d   <td>TOC             <td>VERZEICHNIS    
+    <td>\o "1-3"
+<tr valign=top><td>0e   <td>INFO            <td>INFO
+    <td>&nbsp;
+<tr valign=top><td>0f   <td>TITLE           <td>TITEL
+    <td>&nbsp;
+<tr valign=top><td>10   <td>SUBJECT         <td>THEMA
+    <td>&nbsp;
+<tr valign=top><td>11   <td>AUTHOR          <td>AUTOR
+    <td>&nbsp;
+<tr valign=top><td>12   <td>KEYWORDS        <td>SCHLÜSSEL
+    <td>&nbsp;
+<tr valign=top><td>13   <td>COMMENTS        <td>KOMMENTAR
+    <td>&nbsp;
+<tr valign=top><td>14   <td>LASTSAVEDBY     <td>GESPEICHERTVON
+    <td>&nbsp;
+<tr valign=top><td>15   <td>CREATEDATE      <td>ERSTELLDAT
+    <td>&nbsp;
+<tr valign=top><td>16   <td>SAVEDATE        <td>SPEICHERDAT
+    <td>&nbsp;
+<tr valign=top><td>17   <td>PRINTDATE       <td>DRUCKDAT
+    <td>&nbsp;
+<tr valign=top><td>18   <td>REVNUM          <td>ÜBERARBEITUNGSNUMMER
+    <td>&nbsp;
+<tr valign=top><td>1a   <td>NUMPAGES        <td>ANZSEITEN
+    <td>&nbsp;
+<tr valign=top><td>1b   <td>NUMWORDS        <td>ANZWÖRTER
+    <td>&nbsp;
+<tr valign=top><td>1c   <td>NUMCHARS        <td>ANZZEICHEN
+    <td>&nbsp;
+<tr valign=top><td>1d   <td>FILENAME        <td>DATEINAME
+    <td>&nbsp;
+<tr valign=top><td>1e   <td>TEMPLATE        <td>DOKVORLAGE
+    <td>&nbsp;
+<tr valign=top><td>1f   <td>DATE            <td>AKTUALDAT
+    <td>&nbsp;
+<tr valign=top><td>20   <td>TIME            <td>ZEIT           
+    <td>\@ "tt.MM.jjjj"
+<tr valign=top><td>21   <td>PAGE            <td>SEITE          
+    <td>3
+<tr valign=top><td>22   <td>=               <td>=              
+    <td>&nbsp;
+<tr valign=top><td>23   <td>QUOTE           <td>ANGEBEN
+    <td>&nbsp;
+<tr valign=top><td>25   <td>PAGEREF         <td>SEITENREF      
+    <td>&nbsp;
+<tr valign=top><td>26   <td>ASK             <td>FRAGE
+    <td>&nbsp;
+<tr valign=top><td>27   <td>FILLIN          <td>EINGEBEN
+    <td>&nbsp;
+<tr valign=top><td>29   <td>NEXT            <td>NÄCHSTER
+    <td>&nbsp;
+<tr valign=top><td>2a   <td>NEXTIF          <td>NWENN
+    <td>&nbsp;
+<tr valign=top><td>2b   <td>&nbsp;          <td>ÜBERSPRINGEN
+    <td>&nbsp;
+<tr valign=top><td>2c   <td>MERGEREC        <td>DATENSATZ
+    <td>&nbsp;
+<tr valign=top><td>30   <td>PRINT           <td>DRUCK
+    <td>&nbsp;
+<tr valign=top><td>31   <td>EQ              <td>FORMEL
+    <td>&nbsp;
+<tr valign=top><td>32   <td>GOTOBUTTON      <td>GEHEZU         
+    <td>&nbsp;
+<tr valign=top><td>33   <td>MACROBUTTON     <td>MAKROSCHALTFLÄCHE
+    <td>&nbsp;
+<tr valign=top><td>34   <td>AUTONUMOUT      <td>AUTONRGLI
+    <td>&nbsp;
+<tr valign=top><td>35   <td>AUTONUMLGL      <td>AUTONRDEZ
+    <td>&nbsp;
+<tr valign=top><td>36   <td>AUTONUM         <td>AUTONR
+    <td>&nbsp;
+<tr valign=top><td>37   <td>&nbsp;          <td>IMPORT         
+    <td>&nbsp;
+<tr valign=top><td>38   <td>LINK            <td>VERKNÜPFUNG
+    <td>&nbsp;
+<tr valign=top><td>39   <td>SYMBOL          <td>SONDZEICHEN    
+    <td>224 \f "Wingdings" \s 10 
+<tr valign=top><td>3a   <td>EMBED           <td>EINBETTEN      
+    <td>Paint.Picture Object1
+<tr valign=top><td>3b   <td>MERGEFIELD      <td>SERIENDRUCKFELD
+    <td>&nbsp;
+<tr valign=top><td>3c   <td>USERNAME        <td>BENUTZERNAME
+    <td>&nbsp;
+<tr valign=top><td>3d   <td>USERINITIALS    <td>BENUTZERINITIALEN
+    <td>&nbsp;
+<tr valign=top><td>3e   <td>USERADDRESS     <td>BENUTZERADR
+    <td>&nbsp;
+<tr valign=top><td>41   <td>SECTION         <td>ABSCHNITT
+    <td>&nbsp;
+<tr valign=top><td>42   <td>SECTIONPAGES    <td>ABSCHNITTSEITEN
+    <td>&nbsp;
+<tr valign=top><td>43   <td>INCLUDEPICTURE  <td>EINFÜGENGRAFIK 
+    <td>C:\\WORD\\BILD
+<tr valign=top><td>44   <td>INCLUDETEXT     <td>EINFÜGENTEXT
+    <td>&nbsp;
+<tr valign=top><td>45   <td>FILESIZE        <td>DATEIGRÖSSE
+    <td>&nbsp;
+<tr valign=top><td>46   <td>&nbsp;          <td>FORMULARTEXT   
+    <td>&nbsp;
+<tr valign=top><td>47   <td>FORMCHECKBOX    <td>FORMULARKONTROLLFELD 
+    <td>&nbsp;
+<tr valign=top><td>48   <td>NOTEREF         <td>FUSSENDNOTEREF
+    <td>&nbsp;
+<tr valign=top><td>4b   <td>MERGESEQ        <td>SERIENDRUCKSEQ
+    <td>&nbsp;
+<tr valign=top><td>4e   <td>DATABASE        <td>DATENBANK
+    <td>&nbsp;
+<tr valign=top><td>4f   <td>AUTOTEXT        <td>AUTOTEXT
+    <td>&nbsp;
+<tr valign=top><td>50   <td>COMPARE         <td>VERGLEICH
+    <td>&nbsp;
+<tr valign=top><td>53   <td>&nbsp;          <td>FORMULARDROPDOWN 
+    <td>&nbsp;
+<tr valign=top><td>54   <td>ADVANCE         <td>VERSETZEN
+    <td>&nbsp;
+</table><p>
+
+<a name=anchors>&nbsp;<p>
+<H4><font color=#7f007f>Anchors</font></H4>
+<table border=1>
+<tr valign=top><td colspan=3 align=center>0x100 pair<td><b>anchor_names</b>
+<tr valign=top><td>00 <td>word <td>size
+   <td>Size of structure.
+<tr valign=top><td>02 <td>bstr( ) <td>Names
+   <td>Anchor names.
+</table><p>
+
+<a name=anchor_begin_o>
+<table border=1>
+<tr valign=top><td colspan=3 align=center>0x108 pair<td><b>anchor_begin_o</b>
+<tr valign=top><td>00 <td>texto(n+1) <td>begin
+   <td>Anchor begin offset.
+<tr valign=top><td>xx <td>long(n) <td>index
+   <td>Anchor end index.<br>
+   Refers to anch_end_o.
+</table><p>
+
+<a name=anchor_end_o>
+<table border=1>
+<tr valign=top><td colspan=3 align=center>0x110 pair<td><b>anchor_end_o</b>
+<tr valign=top><td>00 <td>texto( ) <td>end
+   <td>Anchor end offset.
+</table><p>
+
+
+<a name=macro_info>&nbsp;<p>
+<H4><font color=#7f007f>Macro Info</font></H4>
+<font color=#cf0000>Note:</font>
+A lot of information I did not yet understand fully or I simply found 
+no time to include it into this specification. Nevertheless a glance into 
+"word6/macrolib.pl" might give you further hints. Especially it could 
+explain to you, how the macro code itself is structured.<p>
+
+<table border=1>
+<tr valign=top><td colspan=3 align=center>0x118 pair<td><b>macro_info</b>
+<tr valign=top><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00<td>byte<td>0xff<td>Start ID
+<tr valign=top><td rowspan=6>01<td rowspan=6>struct( )<td>empty<td>&nbsp;
+   <tr valign=top><td>macro_info<td>&nbsp;
+   <tr valign=top><td>menu_info<td>&nbsp;
+   <tr valign=top><td>macro_extnames<td>&nbsp;
+   <tr valign=top><td>macro_intnames<td>&nbsp;
+   <tr valign=top><td>other_info<td>unknown
+<tr valign=top><td>xx<td>byte<td>0x40<td>End ID
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>macro_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>01
+   <td>Macro Info ID
+<tr valign=top><td>01 <td>word <td>n
+   <td>Number of entries
+<tr valign=top><td>03 <td>struct(n) <td>macro_info_entry
+   <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>macro_info_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>version
+   <td>Version of WordBasic?
+<tr valign=top><td>01 <td>byte <td>key
+   <td>XOR mask used on macro text
+<tr valign=top><td>02 <td>word <td>intname_i
+   <td>"internal name", index on macro_intnames.
+<tr valign=top><td>04 <td>word <td>extname_i
+   <td>"external name", raw index on macro_extnames. Index
+   is yielded by taking the index of the ordered list of
+   extname_i, xname_i and menu_entry->extname_i. 
+   Value 0xffff means: not defined.
+<tr valign=top><td>06 <td>word <td>xname_i
+   <td>raw index on macro_extnames
+<tr valign=top><td>08 <td>long <td>&nbsp;
+   <td>unknown 
+<tr valign=top><td>0c <td>long <td>code_len
+   <td>length of macro text
+<tr valign=top><td>10 <td>long <td>code_state
+   <td>State of macro?
+<tr valign=top><td>14 <td>fileo <td>code
+   <td>Offset to macro text
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>menu_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>05
+   <td>Menu Info ID
+<tr valign=top><td>01 <td>word <td>n
+   <td>Number of entries
+<tr valign=top><td>03 <td>struct (n) <td>menu_info_entry
+   <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>menu_info_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>word <td>context
+   <td>Context of menu entry. (To be explained)
+<tr valign=top><td>02 <td>word <td>menu
+   <td>Menu number. Says in which menu the entry shall be available.
+<tr valign=top><td>04 <td>word <td>extname_i
+   <td>"external name", raw index on macro_extnames
+<tr valign=top><td>06 <td>word <td>uk
+   <td>Unknow value. Always 2?
+<tr valign=top><td>08 <td>word <td>intname_i
+   <td>index on macro_intnames.
+<tr valign=top><td>10 <td>word <td>pos
+   <td>Menu position of menu entry.
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>macro_extnames</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>0x10
+   <td>External Names ID
+<tr valign=top><td>01 <td>word <td>size
+   <td>Size of entry
+<tr valign=top><td>03 <td>struct( ) <td>macro_extnames_entry
+   <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>macro_extnames_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>bstr <td>string
+   <td>External names and macro descriptions.
+<tr valign=top><td>xx <td>word <td>numref
+   <td>Counts, how often this entry is referred to.
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>macro_intnames</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>0x11
+   <td>Internal Names ID
+<tr valign=top><td>01 <td>word <td>n
+   <td>Number of entries.
+<tr valign=top><td>03 <td>struct (n) <td>macro_intnames_entry
+   <td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>macro_intnames_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>word <td>index
+   <td>Number to identify this entry.
+<tr valign=top><td>02 <td>bstr <td>name
+   <td>Name string.
+<tr valign=top><td>xx <td>byte <td>&nbsp;
+   <td>unknown
+</table><p>
+
+
+<a name=print_info>&nbsp;<p>
+<H4><font color=#7f007f>PrinterEss Info</font></H4>
+<a name=printer_info>
+<table border=1>
+<tr><td colspan=3 align=center>0x130 pair<td><b>printer_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr><td>00<td>zstr<td>name<td>Name of printer?
+<tr><td>xx<td>zstr<td>connection<td>Printer connection?
+<tr><td>yy<td>zstr<td>driver<td>Printer driver?
+</table><p>
+
+<a name=summary_info>&nbsp;<p>
+<H4><font color=#7f007f>Summary Information</font></H4>
+<table border=1>
+<tr><td colspan=3 align=center>0x150 pair<td><b>summary_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>14<td>long <td>create_dtm
+   <td>&nbsp;
+<tr valign=top><td>18<td>long <td>lastsave_dtm
+   <td>&nbsp;
+<tr valign=top><td>1c<td>long <td>lastprinted_dtm
+   <td>&nbsp;
+<tr valign=top><td>20<td>word <td>revision
+   <td>&nbsp;
+<tr valign=top><td>22<td>long <td>&nbsp;
+   <td>&nbsp;
+<tr valign=top><td>26<td>long <td>wordcount
+   <td>&nbsp;
+<tr valign=top><td>2a<td>long <td>charcount
+   <td>&nbsp;
+<tr valign=top><td>2e<td>word <td>pagecount
+   <td>&nbsp;
+<tr valign=top><td>30<td>long <td>&nbsp;
+   <td>(docsuminfo->6)
+<tr valign=top><td>34<td>word <td>&nbsp;
+   <td>&nbsp;
+<tr valign=top><td>36<td>word <td>&nbsp;
+   <td>&nbsp;
+<tr valign=top><td>38<td>long <td>&nbsp;
+   <td>(docsuminfo->5)
+<tr valign=top><td>3c<td>long <td>&nbsp;
+   <td>&nbsp;
+<tr valign=top><td>40<td>long <td>&nbsp;
+   <td>&nbsp;
+<tr valign=top><td>44<td>word <td>&nbsp;
+   <td>&nbsp;
+<tr valign=top><td>54<td>long <td>&nbsp;
+   <td>Word 7 only.
+</table><p>
+
+<table border=1>
+<tr><td colspan=3 align=center>0x158 pair<td><b>summary_strings</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00<td>word <td>size
+   <td>Size of structure.
+<tr valign=top><td>02<td>byte <td>0
+   <td>unknown
+<tr valign=top><td>03<td>byte <td>0
+   <td>unknown
+<tr valign=top><td>04<td>bstr <td>template
+   <td>&nbsp;
+<tr valign=top><td>xx<td>bstr <td>keywords
+   <td>&nbsp;
+<tr valign=top><td>xx<td>bstr <td>short
+   <td>&nbsp;
+<tr valign=top><td>xx<td>bstr <td>comments
+   <td>&nbsp;
+<tr valign=top><td>xx<td>bstr <td>authress
+   <td>&nbsp;
+<tr valign=top><td>xx<td>bstr <td>previous authress
+   <td>&nbsp;
+</table><p>
+
+<a name=fastsave_info>&nbsp;<p>
+<H4><font color=#7f007f>Fast Save Information</font></H4>
+<table border=1>
+<tr><td colspan=3 align=center>0x160 pair<td><b>fastsave_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr><td rowspan=3>00<td rowspan=3>struct( )
+        <td>fastsave_empty<td>&nbsp;
+<tr>    <td>fastsave_charf<td>&nbsp;
+<tr>    <td>fastsave_parf<td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>fastsave_empty</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>0 <td>id
+<tr valign=top><td>01 <td>byte <td>&nbsp; <td>unknown
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>fastsave_charf</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>1   <td>id
+<tr valign=top><td>01 <td>word <td>len <td>len of char format style 
+<tr valign=top><td>03 <td>str(len) <td>charf <td>char format style 
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>fastsave_parf</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>byte <td>2 <td>&nbsp;
+<tr valign=top><td>01 <td>word <td>len <td>&nbsp;
+<tr valign=top><td>03 <td>word <td>&nbsp; <td>unknown
+<tr valign=top><td>05 <td>texto(n) <td>&nbsp; <td>&nbsp;
+<tr valign=top><td>xx <td>struct(n-1) <td>fastsave_parf_entry<td>&nbsp;
+</table><p>
+
+<table border=1>
+<tr><td colspan=4><b>fastsave_parf_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>word <td>&nbsp;  <td>&nbsp;
+<tr valign=top><td>02 <td>fileo <td>&nbsp; <td>&nbsp;
+<tr valign=top><td>06 <td>word <td>n       
+   <td>if odd n:<br>fastsave_charf index = (n-1)/2
+</table><p>
+
+<a name=history_info>&nbsp;<p>
+<H4><font color=#7f007f>Document History Information</font></H4>
+<table border=1>
+<tr><td colspan=3 align=center>0x29a pair<td><b>history_info</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr><td>00<td>word <td>size <td>Size of this structure in bytes.
+<tr><td>02<td>struct( )<td>history_entry <td>&nbsp;
+</table><p>
+<table border=1>
+<tr><td colspan=4><b>history_entry</b>
+<tr><td>Offset<td>Type<td>Value<td>Information
+<tr valign=top><td>00 <td>bstr <td>authress <td>&nbsp;
+<tr valign=top><td>n+1 <td>bstr <td>path <td>&nbsp;
+</table><p>
+
+&nbsp;<p><hr><p>
+
+<p>Back to <a href=../../index.html>Laola</a> homepage.<p>
+
+</body></html>
+

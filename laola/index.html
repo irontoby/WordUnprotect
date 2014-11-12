@@ -1,0 +1,108 @@
+<html><head><title>LAOLA Homepage, Jun/30/97</title></head>
+<body bgcolor="#ffffff" link="#0000ff" alink="#ff0000" vlink="#0000c0">
+<!--$Id: index.html,v 0.5.1.7 1997/07/01 00:06:41 schwartz Rel $-->
+
+&nbsp;<p>
+<!hr align=center size=10 width=50%><p>
+<H1 align=left><font color="#7f007f">LAOLA</font></H1>
+
+<font size="+1"><font color=#ff0000>Binary Structures</font></font><p>
+
+<H4>Laola distribution</H4>
+
+is a collection of documentations and perl programs dealing with binary file
+formats of Windows program documents.<br>
+
+<font color=#c06000>LAOLA</font> is giving access to the raw document
+streams of any program using "structured storage" technology to save its
+documents.<br>
+
+<font color=#c06000>ELSER</font> is dealing especially with
+these streams as they are present in Word 6 and Word 7 documents.
+<p>
+
+If you do not have a perl, "How to obtain Perl" might help you. To run the
+programs, you have to get the distribution file (laolaxxx.zip), that
+includes everything of Laola and Elser, inclusive this document.<p>
+
+Current release of this collection is from 
+<font color=#7f007f>Jun/30/1997</font>. 
+It is distributed according to Version 2 of GNU General Public License. 
+<a href=history.html>History</a>.<p>
+
+<p>
+<H1>Contents</H1>
+<dl><dl>
+   <a href=guide.html>Hacking <font size="+1">guide</font></a></font></font><font color=#ff0000><font size="+2"><b>,</b></font> &nbsp; </font>
+   <a href=#sources><font size="+1">Source</font> codes</a><font color=#ff0000><font size="+2"><b>,</b></font> &nbsp; </font>
+   <a href=get-perl.html>How to obtain <font size="+1">Perl</font></a><font color=#ff0000><font size="+2"><b>,</b></font> &nbsp; </font>
+   <p>
+   <a href=laola011.zip>LAOLA distribution</a>, laola011.zip (158 KB)
+   <p>
+   <a href=COPYING>GNU General Public License</a>
+</dl></dl>
+
+<font size="-1">
+Comments and donations are highly welcome! Contact:<p>
+<a href=mailto:schwartz@cs.tu-berlin.de>Martin Schwartz@cs.tu-berlin.de</a>
+</font>
+
+<a name=sources>
+&nbsp;<p><hr><p>
+<H3>About source codes</H3>
+<dl>
+
+<dt><font size="+1"><font color="#ff0000">LAOLA</font></font>
+
+<dd>
+   <br>
+   <dl>
+   <dt><font color=#c06000><b>laola.pl</b></font>
+       (<a href=ref.html>Quick Reference</a>)
+   <dd>A perl 4 library giving access to Laola files. This library
+       is founding the rest of this distribution.
+   <p>
+   <dt><font color=#c06000><b>lclean</b></font>, Laola Clean
+       (<a href="lcle-out.html">Sample output</a>, 
+       <a href="lcle-doc.html">doc</a>)
+   <dd>Saves the trash sections of e.g. Word 6, Word 7 or Excel documents 
+       to own files, or cleans this trash sections. To demonstrate the free 
+       space in such documents, you can insert some file into them.
+   <p>
+   <dt><font color=#c06000><b>ldat</b></font>, Laola Display Authress Title
+       (<a href="ldat-out.html">Sample output</a>)
+   <dd>Lists author, title, creation date and some other information
+       sticked in a laola file. Gets printer information from Excel and Word
+       files. Demonstrates how to read "property sets".
+   <p>
+   <dt><font color=#c06000><b>lls</b></font>, Laola List
+       (<a href="lls-out.html">Sample output</a>)
+   <dd>Lists the structure of a Laola document.
+   <p>
+   <dt><font color=#c06000><b>lhalw</b></font>, Laola Have A Look at Word
+   <dd>Shows text of Word 6 and Word 7 documents.<br>
+       Word 8 is a little bit supported, too.
+   </dl>
+<p>
+
+<dt><font size="+1"><font color="#ff0000">Elser</font></font>
+    (<a href=elser/elser.html>manual</a>)
+<dd>
+   <br>
+   <dl>
+   <dt><font color=#c06000><b>Elser</b></font>, handle Word 6 and Word 7 documents.
+   <dd>Features password resolving, macro decoding and deletion, a little
+       bit virus detection, rudimentary HTML conversion.
+   <p>
+   <dt><a href=elser/vita.html>About Johann Georg Elser</a>
+   &nbsp; (das gleiche auf <a href=elser/vita-d.html>deutsch</a>)
+   <p>
+   <dt><a href=elser/password.html>About password protection of 
+       Word documents</a>
+   <p>
+   <dt><a href=elser/word6/format.html>About Word 6.0 document format</a>
+   <p>
+   </dl>
+</dl>
+
+<p><hr><p></body></html>

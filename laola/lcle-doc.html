@@ -1,0 +1,119 @@
+<html><head><title>LAOLA lclean, $Date: 1997/07/01 00:06:43 $</title></head>
+<body bgcolor="#ffffff" link="#0000ff" alink="#ff0000" vlink="#0000c0">
+<!--$Id: lcle-doc.html,v 1.1.1.5 1997/07/01 00:06:43 schwartz Rel $-->
+
+&nbsp;<p><H1 align=left><font color=#7f007f>lclean</font></H1>
+
+<H2>Documentation</H2>
+<H4>Version 1.0</H4>
+
+<b>lclean</b> is a program that allows you to detect, save and clean the 
+trash sections of OLE style documents.<p>
+
+<font color="#ff0000">Note:</font>
+This program changes your document! If you use lclean, please keep a backup 
+of the treated files, until you are sure they did not take any harm!<p>
+
+Why lclean?<br>
+<ul>
+<li>Microsoft's first and still most spreaded OLE implementations had bugs. 
+One caused that some sections of documents that actually should be filled 
+with zero bytes contained more or less private data.
+<p>
+<li>Management of OLE documents is difficult and takes a little time. 
+A way to fasten this up is not to care about the old data, but simply to 
+add the new data to the document. Clean up could be done later when 
+there was time. When switched on the "fast save" option, Microsoft Word 
+uses this strategy. So, thus saved files contain the new and the old 
+version of a document. The old data cannot be edited any more and stays 
+invisible in the document.
+<p>
+<li>Some programs seem to use the Microsoft OLE library not properly. 
+For example, the Star Office 3.1. programs create documents, that 
+always contain 1024 bytes of trash.
+<p>
+<li>As far as I know, Microsoft offers a bugfix for 32 bit Windows 
+systems, only.
+</ul>
+
+The program "lclean" can access this kind of garbage in OLE documents. 
+To do this it uses the <i>laola_modify_trash</i> function of the "laola.pl" 
+library. This library decides between four different types of trash. To 
+understand them fully, you will have to look at the source code. 
+In short:<p>
+
+<ol>
+<li>Unused "big blocks". These blocks are not used by the document. Each of 
+    these blocks is 512 bytes long.
+<li>Unused "small blocks". These blocks are not used by the document. Each of 
+    these blocks is 64 bytes long.
+<li value=4>File end space. This refers to the "streams" of an OLE document.
+    The space is made up of all the space between the end of a stream
+    and the end of a block.
+<li value=8>System space. These sections are required by file format, though
+    they are not used by OLE system. Actually this data is no garbage. 
+</ol>
+
+You can do several things:<p>
+
+<dl>
+<dt><b>Get a trash report</b>
+<dd><i>lclean -r {document}</i><br>
+    Gives a little report about the trash in the document(s).
+<p>
+<dt><b>Clean the trash</b>
+<dd><i>lclean -c [-n] {document}</i><br>
+    The trash sections will be cleaned. Unused blocks are filled with null
+    bytes. System data will be cleaned with 0xff bytes. File end trash 
+    (type 4) will be cleaned with random bytes. When using switch -n, file 
+    end trash will be filled also with zero bytes (faster on files with 
+    lots of embedded objects).
+<p>
+<dt><b>Save the trash to files</b>
+<dd><i>lclean -s [-a] [-d] [-z] {document}</i><br>
+    The trash sections will be saved to own files. They will be stored to
+    an directory in your current directory. Normally it will be the directory 
+    <i>"doctrash"</i>. E.g., if there is the example file 
+    <i>"legacy.doc"</i> the trashfiles will be stored as: 
+    <i>"doctrash/legacy.tr1"</i>, <i>"doctrash/legacy.tr2"</i>, 
+    <i>"doctrash/legacy.tr3"</i> and <i>"doctrash/legacy.tr4"</i>.<p>
+    <ul>
+    <li>When using switch -a, all trash will be stored into one big file 
+       <i>"doctrash/legacy.tra"</i>.<p>
+    <li>When using switch -d, the trash file(s) will not be stored into 
+        directory <i>"doctrash"</i>, but into each an own directory. E.g. 
+        into directory <i>"legacy/"</i>.<p>
+    <li>When using switch -z, zero length files will not be created.
+    </ul><p>
+<dd><b>Example:</b> <i>lclean -cs {document}</i><br>
+    This would first save all trash chunks into separate files into 
+    directory <i>"doctrash"</i>, then it would clean the document.
+<p>
+<dt><b>Insert a file into the document (hide it)</b>
+<dd><i>lclean -i &lt;file&gt; [-a] {document}</i><br>
+    Instead of trash, some &lt;file&gt; can thus be stored into the 
+    document. This file cannot be seen by the documents application. The
+    file may of course not be bigger, than the size of the trash in your
+    documents (plus 20 bytes plus the size to store the filename). Normally, 
+    only trash types 1 and 2 will be used for this. If they offer not 
+    enough space, with switch -a trash type 4 and 8 will be used, too.<p>
+<dd><b>Example:</b> <i>lclean -aci &lt;file&gt; {document}</i><br>
+    This would first clean the document, then insert the hidden file
+    by using all trash types.
+<p>
+<dt><b>List if there is a file inserted into the documents trash</b>
+<dd><i>lclean -l {document}</i><br>
+<p>
+<dt><b>Extract the hidden file</b>
+<dd><i>lclean -e [-f] [-z] {document}</i><br>
+   This makes a copy of the hidden file. If the file got corrupted by what 
+   reason ever, it will not be extracted. The file will get the date of its
+   last modification. If the file already exists, you will be prompted to
+   overwrite it with the new extracted file. With switch -f you will not be 
+   prompted, but the file will be overwritten. With switch -z, no zero 
+   length files will be created.
+</dl>
+
+<p>Back to <a href="index.html">Laola</a> Homepage.
+<p></body></html>
+
